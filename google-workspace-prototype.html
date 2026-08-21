@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Workspace — SaaS App Protection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&family=Fira+Code&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================================
+   Aura design-system tokens (@rubrik/aura-ui — Tokens.colors.* / shadow.* /
+   borderRadius.*), dark theme. Shared with the IR-health prototype.
+   =========================================================================== */
+:root{
+  --font:'Open Sans',sans-serif;
+  --surface-primary:#093565; --surface-secondary:#0a2e57; --surface-tertiary:#0c2448;
+  --card-grad:linear-gradient(180deg, rgba(13,52,97,.92), rgba(10,38,78,.92));
+  --card-hd:rgba(255,255,255,.045);
+  --stroke:rgba(160,199,255,.24); --stroke-mod:rgba(160,199,255,.16); --stroke-weak:rgba(160,199,255,.08);
+  --border-mod:rgba(255,255,255,.24);
+  --text:#fff; --text-mod:rgba(255,255,255,.80); --text-weak:#c6cbcb; --text-dis:rgba(255,255,255,.56);
+  --accent:#4dd2d2; --accent-solid:#007d93; --accent-hover:#0797a7;
+  --success:#21ddaa; --success-bd:rgba(33,221,170,.56); --success-bg:rgba(33,221,170,.16);
+  --warning:#ffb721; --warning-bd:rgba(255,183,33,.56); --warning-bg:rgba(255,183,33,.16);
+  --error:#ff5664; --error-bd:rgba(255,86,100,.56); --error-bg:rgba(255,86,100,.16);
+  --info:#2fcaff; --neutral:#c6cbcb; --neutral-bg:rgba(198,203,203,.14);
+  --r-btn:4px; --r-chip:10px; --r-card:12px; --r-lg:16px; --r-tip:10px;
+  --e2:1px 1px 4px rgba(0,0,0,.18), 3px 3px 8px rgba(0,0,0,.12);
+  --e4:3px 4px 6px rgba(0,0,0,.18), 8px 8px 20px rgba(0,0,0,.22);
+  --e6:3px 4px 8px rgba(0,0,0,.28), 14px 18px 34px rgba(0,0,0,.34);
+  --row-hover:rgba(47,202,255,.07); --table-bd:rgba(160,199,255,.20);
+  --modal-grad:linear-gradient(180deg,#0d3563,#0a2c56);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;padding-bottom:80px;-webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(4,25,60,1), rgba(8,29,63,0) 55%),
+    radial-gradient(circle at 92% 12%, rgba(40,23,144,.55), rgba(40,23,144,0) 45%),
+    radial-gradient(circle at 45% 60%, rgba(0,79,173,.85), rgba(0,79,173,0) 55%),
+    radial-gradient(circle at 100% 100%, rgba(0,134,168,.55), rgba(0,134,168,0) 50%),
+    radial-gradient(circle at 25% 100%, rgba(2,88,144,.9), rgba(2,88,144,0) 55%), #061a34;
+  background-attachment:fixed}
+a{color:var(--info);text-decoration:none} a:hover{color:#69e0ff}
+.muted{color:var(--text-weak)}
+.hidden{display:none!important}
+
+/* ---------- global nav ---------- */
+.nav{display:flex;align-items:center;padding:0 26px;height:60px;border-bottom:1px solid var(--stroke);
+  background:rgba(6,16,30,.55);backdrop-filter:blur(10px);position:sticky;top:0;z-index:40}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:16px;white-space:nowrap}
+.logo svg{width:30px;height:30px;flex-shrink:0}
+.navitems{display:flex;gap:26px;font-size:12px;font-weight:700;letter-spacing:.07em;color:var(--text-mod);height:100%;align-items:center;
+  margin:0 auto;padding-left:60px}
+.navitems span{cursor:pointer;height:100%;display:flex;align-items:center}
+.navitems span:hover{color:var(--text)}
+.navitems .active{color:var(--text);box-shadow:inset 0 -3px 0 var(--accent)}
+.navright{display:flex;align-items:center;gap:18px;color:var(--text-mod)}
+.aipill{display:flex;align-items:center;gap:8px;height:34px;padding:0 16px;border-radius:20px;border:1px solid var(--accent);
+  color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.06em;cursor:pointer;background:rgba(77,210,210,.06)}
+.aipill:hover{background:rgba(77,210,210,.14)}
+.nicon{position:relative;cursor:pointer;display:flex;align-items:center;color:var(--text-mod)}
+.nicon:hover{color:var(--text)}
+.nicon .dot{position:absolute;top:-1px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--info);border:1.5px solid #0b1c31}
+.orgpick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap}
+.avatar{width:30px;height:30px;border-radius:50%;border:1px solid var(--border-mod);display:flex;align-items:center;justify-content:center;
+  background:rgba(47,202,255,.10);cursor:pointer}
+
+/* ---------- page frame ---------- */
+.wrap{max-width:1560px;margin:0 auto;padding:22px 26px}
+.crumb{color:var(--text-weak);font-size:12.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.crumb a{color:var(--info);cursor:pointer}
+.crumb .sep{color:var(--text-dis)}
+.pagehd{display:flex;align-items:center;gap:15px}
+.pagehd .pgico{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pagehd h1{font-size:29px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.pagehd h1 .thin{font-weight:400;color:var(--text-mod);margin:0 4px}
+.pgactions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdrule{border-bottom:1px solid var(--stroke-weak);margin:18px 0 24px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 20px;border-radius:var(--r-btn);
+  font-family:var(--font);font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;
+  border:1px solid var(--stroke);background:rgba(47,202,255,.06);color:var(--text);white-space:nowrap}
+.btn:hover{background:rgba(47,202,255,.12);border-color:var(--border-mod)}
+.btn.primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;box-shadow:var(--e2)}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.sm{height:32px;padding:0 14px;font-size:11px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled:hover{background:rgba(47,202,255,.06);border-color:var(--stroke)}
+.btn .cv{font-size:9px;opacity:.8}
+.iconbtn{width:38px;height:38px;border-radius:var(--r-btn);border:1px solid var(--stroke);background:rgba(47,202,255,.06);
+  color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;letter-spacing:1px}
+.iconbtn:hover{background:rgba(47,202,255,.12)}
+.linkbtn{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;background:none;
+  border:none;font-family:var(--font);display:inline-flex;align-items:center;gap:6px}
+.linkbtn:hover{color:#7ce7e7}
+.inlinelink{color:var(--accent);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.inlinelink:hover{color:#7ce7e7}
+
+/* ---------- cards ---------- */
+.card{background:var(--card-grad);border:1px solid var(--stroke);border-radius:var(--r-card);box-shadow:var(--e2)}
+.card.pad{padding:22px}
+.card h3{font-size:17px;font-weight:700}
+
+/* ---------- org page: one 3-column grid ----------
+   Row 1: the three app cards. Row 2: Backup Jobs spanning the first two columns,
+   Status in the third so it is exactly as wide as the app card above it. */
+.orggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.orggrid .jobs{grid-column:span 2;min-width:0}
+.appcard{cursor:pointer;display:flex;flex-direction:column;transition:border-color .15s,transform .15s,box-shadow .15s;position:relative}
+.appcard:hover{border-color:rgba(77,210,210,.55);transform:translateY(-2px);box-shadow:var(--e4)}
+/* min-height fits a two-line app name (Gmail, Calendar and Contacts) so all
+   three cards keep their bands aligned at every width */
+.ac-hd{display:flex;align-items:center;gap:18px;padding:18px 24px;background:var(--card-hd);border-bottom:1px solid var(--stroke-weak);
+  border-radius:var(--r-card) var(--r-card) 0 0;min-height:96px}
+.ac-logo{width:44px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ac-logo svg{width:100%;height:100%}
+.ac-name{font-size:21px;font-weight:700;line-height:1.2}
+.ac-go{margin-left:auto;color:var(--accent);opacity:0;transition:opacity .15s;flex-shrink:0}
+.appcard:hover .ac-go{opacity:1}
+.ac-mid{display:flex;padding:16px 24px;border-bottom:1px solid var(--stroke-weak)}
+.ac-metric{flex:1;min-width:0;padding-right:16px}
+.ac-metric+.ac-metric{border-left:1px solid var(--stroke-weak);padding-left:24px;padding-right:0}
+.ac-metric .v{font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.ac-metric .v svg{flex-shrink:0}
+.ac-metric .l{font-size:11.5px;color:var(--text-weak);margin-top:4px;display:flex;align-items:center;gap:5px}
+.ac-metric.comp .v{color:var(--success);font-size:17px;gap:7px}
+.ac-ft{display:flex;gap:26px;padding:18px 24px 22px;flex:1}
+.ac-obj{flex:1;min-width:0}
+.ac-obj .rl{font-size:13.5px;font-weight:600;color:var(--text-mod);margin-bottom:7px}
+.ac-obj .rv{display:flex;align-items:baseline;gap:8px}
+.ac-obj .rv b{font-size:23px;font-weight:700;line-height:1}
+.ac-obj .rv .st{font-size:13px;color:var(--text-mod)}
+.ac-obj .rv .tot{margin-left:auto;font-size:13px;color:var(--text-mod)}
+.bar{height:4px;border-radius:3px;background:rgba(160,199,255,.20);margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#21ddaa,#34d399);border-radius:3px;transition:width .4s}
+.bar i.none{background:rgba(198,203,203,.35)}
+
+/* info tooltip */
+.i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--text-dis);
+  color:var(--text-dis);font-size:9px;font-style:italic;font-weight:700;cursor:help;position:relative;flex-shrink:0}
+.i:hover{border-color:var(--text);color:var(--text)}
+.i .tip{display:none;position:absolute;bottom:calc(100% + 9px);left:-10px;width:250px;background:var(--modal-grad);
+  border:1px solid var(--border-mod);border-radius:var(--r-tip);box-shadow:var(--e4);padding:11px 13px;font-size:12px;font-style:normal;
+  font-weight:400;line-height:1.55;color:var(--text-mod);z-index:50;text-align:left}
+.i:hover .tip{display:block}
+
+/* ---------- org page: fit to the viewport ----------
+   No page-level scroll: the whole org page lives inside 100vh. Backup Jobs and
+   Status take the height left over from the card row, and the Status card
+   scrolls inside itself rather than growing the page. */
+.railcard{padding:0}
+body.fit{height:100vh;overflow:hidden;padding-bottom:0}
+body.fit .wrap{height:calc(100vh - 60px);display:flex;flex-direction:column;min-height:0;padding-bottom:22px}
+body.fit #app{flex:1;min-height:0;display:flex;flex-direction:column}
+body.fit .orggrid{flex:1;min-height:0;grid-template-rows:auto minmax(0,1fr)}
+body.fit .jobs,body.fit .railcard{height:100%;min-height:0}
+.jobs{display:flex;flex-direction:column}
+.railcard{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(160,199,255,.3) transparent}
+.railcard::-webkit-scrollbar{width:9px}
+.railcard::-webkit-scrollbar-track{background:transparent}
+.railcard::-webkit-scrollbar-thumb{background:rgba(160,199,255,.28);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+.railcard::-webkit-scrollbar-thumb:hover{background:rgba(160,199,255,.45);background-clip:content-box}
+.rsec{padding:22px 24px;border-top:1px solid var(--stroke-weak)}
+.rsec:first-child{border-top:none}
+.rsec h3{margin-bottom:18px}
+.rsec .rhd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.rsec .rhd h3{margin:0}
+.connrow{display:flex;align-items:center;gap:22px}
+.cfield .cl{font-size:12px;color:var(--text-weak)}
+.cfield .cv{font-size:13.5px;font-weight:600;margin-top:3px}
+.rtext{font-size:13px;color:var(--text-mod);line-height:1.6}
+.snapblock{display:flex;gap:18px;align-items:center;margin-top:4px}
+.rtable{width:100%;border-collapse:collapse;margin-top:14px}
+.rtable th{text-align:left;font-size:11.5px;font-weight:700;color:var(--text-mod);padding:0 10px 10px 0;
+  border-bottom:1px solid var(--table-bd);white-space:nowrap}
+.rtable td{padding:13px 10px 13px 0;font-size:12.5px;border-bottom:1px solid var(--stroke-weak);vertical-align:middle}
+.rtable tr:last-child td{border-bottom:none}
+.rtable td:first-child{font-weight:600}
+.rtable .tr{max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lic{display:flex;gap:40px;margin-top:6px}
+.lic .lv{font-size:22px;font-weight:700;margin-top:5px}
+.lic .lv small{font-size:12px;color:var(--text-weak);font-weight:600}
+.lic .ll{font-size:12px;color:var(--text-weak)}
+
+/* ---------- backup jobs chart ---------- */
+.jobs{padding:22px 24px 24px}
+.jobshd{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.sel{position:relative}
+.sel select{appearance:none;height:34px;background:rgba(47,202,255,.06);border:1px solid var(--stroke);border-radius:var(--r-btn);
+  color:var(--text);font-family:var(--font);font-size:12.5px;padding:0 30px 0 12px;cursor:pointer;outline:none}
+.sel select:focus{border-color:var(--accent)}
+.sel::after{content:"▾";position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-weak);pointer-events:none;font-size:10px}
+.chartgrid{display:grid;grid-template-columns:minmax(0,1fr) 226px;gap:26px;align-items:center;flex:1;min-height:0}
+.chartbox{position:relative;height:100%;min-height:140px}
+.chartbox svg{width:100%;height:100%;overflow:visible;display:block}
+.legend .lrow{display:flex;align-items:center;gap:10px;font-size:13.5px;margin-bottom:14px}
+.legend .lrow b{font-weight:700}
+.legend .lrow .m{width:22px;height:2px;position:relative;flex-shrink:0}
+.legend .lrow .m::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;
+  border-radius:50%;border:2px solid;background:#0a2c56}
+.legend .note{font-size:12px;color:var(--text-weak);line-height:1.6;margin-top:18px}
+
+/* ---------- app page: main tabs ---------- */
+.tabsmain{display:flex;gap:34px;border-bottom:1px solid var(--stroke);font-size:12.5px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;margin-bottom:26px}
+.tabsmain .t{display:flex;align-items:center;gap:9px;padding:12px 2px;color:var(--text-mod);cursor:pointer}
+.tabsmain .t:hover{color:var(--text)}
+.tabsmain .t.active{color:var(--text);box-shadow:inset 0 -3px 0 var(--accent)}
+.tabsmain .t svg{width:16px;height:16px}
+
+/* restore landing cards */
+.restorecards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.rcard{display:flex;flex-direction:column;transition:border-color .15s,transform .15s,box-shadow .15s}
+.rcard:hover{border-color:rgba(77,210,210,.5);transform:translateY(-2px);box-shadow:var(--e4)}
+.rc-hd{padding:22px 26px;background:var(--card-hd);border-bottom:1px solid var(--stroke-weak);border-radius:var(--r-card) var(--r-card) 0 0}
+.rc-hd h3{font-size:21px;font-weight:700}
+.rc-body{padding:26px;flex:1;display:flex;flex-direction:column;min-height:210px}
+.rc-body .d{font-size:13.5px;color:var(--text-mod);line-height:1.65}
+.rc-btn{margin-top:auto;height:44px;width:100%;border-radius:var(--r-btn);border:1px solid rgba(160,199,255,.18);
+  background:rgba(47,202,255,.07);color:var(--accent);font-family:var(--font);font-size:12.5px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;cursor:pointer}
+.rc-btn:hover{background:rgba(77,210,210,.16);border-color:rgba(77,210,210,.45)}
+
+/* manage protection: pill sub-tabs */
+.pilltabs{display:flex;gap:6px;margin-bottom:20px}
+.pill{padding:9px 18px;border-radius:6px 6px 0 0;font-size:13.5px;color:var(--text-mod);cursor:pointer;border:1px solid transparent;
+  border-bottom:none}
+.pill:hover{color:var(--text);background:rgba(47,202,255,.05)}
+.pill.active{color:var(--text);font-weight:600;background:rgba(47,202,255,.10);border-color:var(--stroke-weak)}
+.mpbar{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.mpbar .right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.mpgrid{display:grid;grid-template-columns:214px minmax(0,1fr);gap:32px;align-items:start}
+
+/* filter rail */
+.frail{padding-top:2px}
+.frgroup{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--stroke-weak)}
+.frgroup:last-child{border-bottom:none}
+.frhd{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px}
+.frhd .cr{font-size:10px;color:var(--text-weak);transition:transform .18s}
+.frgroup.collapsed .frbody{display:none}
+.frgroup.collapsed .frhd .cr{transform:rotate(180deg)}
+.fropt{display:flex;align-items:center;gap:11px;padding:6px 0;font-size:13px;color:var(--text-mod);cursor:pointer}
+.fropt:hover{color:var(--text)}
+.fropt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frclear{font-size:13px;color:var(--accent);cursor:pointer;padding:6px 0;display:inline-block}
+.frclear:hover{color:#7ce7e7}
+
+/* controls */
+.cb{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1.5px solid var(--stroke);border-radius:4px;background:transparent;
+  cursor:pointer;position:relative;flex-shrink:0;vertical-align:middle}
+.cb:checked{background:var(--accent-solid);border-color:var(--accent-solid)}
+.cb:checked::after{content:"✓";position:absolute;color:#fff;font-size:11px;line-height:13px;left:2px;top:0}
+.rd{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1.5px solid var(--stroke);border-radius:50%;background:transparent;
+  cursor:pointer;position:relative;flex-shrink:0;vertical-align:middle}
+.rd:checked{border-color:var(--accent)}
+.rd:checked::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--accent)}
+.search{position:relative}
+.search input{width:300px;height:38px;background:rgba(47,202,255,.06);border:1px solid var(--stroke);border-radius:var(--r-btn);
+  color:var(--text);font-family:var(--font);font-size:13px;padding:0 14px 0 38px;outline:none}
+.search input:focus{border-color:var(--accent)}
+.search input::placeholder{color:var(--text-dis)}
+.search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-weak);display:flex}
+.search.sm input{height:34px;width:250px;font-size:12.5px}
+
+/* flat data table (manage protection / wizard lists) */
+table.flat{width:100%;border-collapse:collapse}
+table.flat th{text-align:left;font-size:12.5px;color:var(--text-mod);font-weight:700;padding:0 14px 12px;border-bottom:1px solid var(--table-bd);
+  white-space:nowrap;user-select:none}
+table.flat th.s{cursor:pointer}
+table.flat th.s:hover{color:var(--text)}
+table.flat th .ar{font-size:9px;margin-left:5px;opacity:.85}
+table.flat td{padding:0 14px;height:56px;border-bottom:1px solid var(--stroke-weak);vertical-align:middle;font-size:13.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.flat tbody tr{cursor:pointer}
+table.flat tbody tr:hover{background:var(--row-hover)}
+/* row-selected class is deliberately NOT ".sel" — that is the dropdown wrapper,
+   whose ::after would paint a stray caret inside selected rows */
+table.flat tbody tr.rowsel{background:rgba(77,210,210,.10);box-shadow:inset 3px 0 0 var(--accent)}
+table.flat .cbcell{width:44px;padding-right:0!important}
+table.flat td.tac,table.flat th.tac{text-align:right}
+table.flat .kebab{color:var(--text-weak);cursor:pointer;font-size:16px;letter-spacing:1px;opacity:0}
+table.flat tr:hover .kebab,table.flat tr.rowsel .kebab{opacity:1}
+table.flat .kebab:hover{color:var(--text)}
+.colcfg{color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:flex-end}
+.colcfg:hover{color:#7ce7e7}
+.oname{display:flex;align-items:center;gap:11px;min-width:0}
+.oname svg{width:17px;height:17px;flex-shrink:0;color:var(--text-mod)}
+.oname .nn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{padding:48px 14px;text-align:center;color:var(--text-weak);font-size:13.5px}
+.tabnote{font-size:12.5px;color:var(--text-weak);padding:14px 14px 0}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 10px;border-radius:var(--r-chip);font-size:11.5px;font-weight:600;
+  border:1px solid transparent;white-space:nowrap}
+.chip .d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chip.ok{color:var(--success);background:var(--success-bg);border-color:var(--success-bd)} .chip.ok .d{background:var(--success)}
+.chip.warn{color:var(--warning);background:var(--warning-bg);border-color:var(--warning-bd)} .chip.warn .d{background:var(--warning)}
+.chip.val{color:var(--neutral);background:var(--neutral-bg);border-color:rgba(198,203,203,.38)} .chip.val .d{background:var(--neutral)}
+.chip.info{color:var(--info);background:rgba(47,202,255,.14);border-color:rgba(47,202,255,.42)} .chip.info .d{background:var(--info)}
+
+/* ---------- menus ---------- */
+.menu{position:absolute;min-width:230px;background:var(--modal-grad);border:1px solid var(--border-mod);border-radius:var(--r-tip);
+  box-shadow:var(--e4);padding:7px 0;z-index:70;display:none}
+.menu.open{display:block}
+.menu .mh{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-weak);font-weight:700;padding:8px 15px 6px}
+.menu .mi{display:flex;align-items:center;gap:11px;padding:10px 15px;font-size:13px;color:var(--text-mod);cursor:pointer}
+.menu .mi:hover{background:rgba(47,202,255,.10);color:var(--text)}
+.menu .mi.dis{opacity:.4;cursor:not-allowed}
+.menu .mi.dis:hover{background:none;color:var(--text-mod)}
+.menu .sepline{height:1px;background:var(--stroke-weak);margin:6px 0}
+
+/* ---------- modal / wizard ---------- */
+.modalbg{position:fixed;inset:0;background:rgba(3,10,22,.62);backdrop-filter:blur(4px);z-index:80;display:none;align-items:center;justify-content:center}
+.modalbg.open{display:flex}
+.modal{width:1020px;max-width:94vw;max-height:90vh;background:linear-gradient(180deg,#0b3a63,#0a2b4f);border:1px solid var(--border-mod);
+  border-radius:var(--r-lg);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--e6)}
+.modal.sm{width:760px}
+/* group wizard: fixed footprint — the dialog never resizes between steps or
+   within a step; overflowing content scrolls inside .mbody */
+.modal.gw{width:1180px;height:min(780px,88vh)}
+.mhd{display:flex;align-items:center;gap:16px;padding:20px 28px;border-bottom:1px solid var(--stroke-weak);background:rgba(255,255,255,.03)}
+.mhd h2{font-size:20px;font-weight:400}
+.mhd .mact{margin-left:auto;display:flex;align-items:center;gap:18px;color:var(--text-weak)}
+.mhd .mact span{cursor:pointer;display:flex}
+.mhd .mact span:hover{color:var(--text)}
+.stepper{display:flex;align-items:center;justify-content:center;gap:0;padding:16px 0 6px}
+.st{display:flex;align-items:center}
+.st .c{width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(160,199,255,.35);color:var(--text-dis);display:flex;
+  align-items:center;justify-content:center;font-size:12.5px;font-weight:700;background:transparent}
+.st.cur .c{border-color:var(--accent);color:var(--accent)}
+.st.done .c{background:var(--accent);border-color:var(--accent);color:#04222a}
+.st .ln{width:34px;height:1.5px;background:rgba(160,199,255,.35)}
+.st.done .ln{background:var(--accent)}
+.mbody{padding:14px 34px 30px;overflow-y:auto;flex:1;min-height:0}
+.mbody h3{font-size:25px;font-weight:800;margin-bottom:16px}
+.mbody .lead{font-size:13.5px;color:var(--text-mod);line-height:1.7;margin-bottom:26px;max-width:760px}
+.mfooter{display:flex;align-items:center;gap:14px;padding:16px 28px;border-top:1px solid var(--stroke-weak);background:rgba(255,255,255,.03)}
+.mfooter .mfl{font-size:12.5px;color:var(--text-weak);display:flex;align-items:center;gap:10px}
+.mfooter .mfr{margin-left:auto;display:flex;gap:12px}
+.ack{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-mod);cursor:pointer}
+
+/* wizard: what-to-expect */
+.expect{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:30px;align-items:start}
+.exitem{margin-bottom:26px}
+.exitem h4{font-size:15.5px;font-weight:700;margin-bottom:8px}
+.exitem p{font-size:13.5px;color:var(--text-mod);line-height:1.7}
+.exnote{font-size:13.5px;color:var(--text-mod);line-height:1.7}
+.illus{width:100%;height:auto}
+
+/* wizard: list step */
+.wsplit{display:grid;grid-template-columns:210px minmax(0,1fr);gap:30px;align-items:start}
+/* the search sits flush with the right edge of the table below it */
+.wtop{display:flex;align-items:center;gap:24px;margin-bottom:22px}
+.wtop .lead{margin:0;flex:1;max-width:none}
+.wtop .search{margin-left:auto;flex-shrink:0}
+.wlist{max-height:400px;overflow-y:auto;border-bottom:1px solid var(--stroke-weak)}
+/* step 2 fills the fixed dialog height so the list uses all available space */
+.mbody.fill{display:flex;flex-direction:column}
+.mbody.fill .wsplit{flex:1;min-height:0}
+.mbody.fill .wsplit>div:last-child{height:100%;display:flex;flex-direction:column;min-height:0}
+.mbody.fill .wlist{flex:1;min-height:0;max-height:none}
+table.flat td.snapcell{width:1%;white-space:nowrap;text-align:right;padding-right:8px}
+.wlist table.flat td{height:52px}
+.wlist table.flat thead th{position:sticky;top:0;background:#0c3159;z-index:2}
+.selcount{font-size:12.5px;color:var(--text-weak)}
+
+/* wizard: option rows */
+.optrow{display:flex;gap:13px;align-items:flex-start;padding:15px 17px;border:1px solid var(--stroke-mod);border-radius:var(--r-card);
+  margin-bottom:12px;cursor:pointer;background:rgba(47,202,255,.03)}
+.optrow:hover{border-color:rgba(77,210,210,.4);background:rgba(47,202,255,.06)}
+.optrow.on{border-color:rgba(77,210,210,.55);background:rgba(77,210,210,.08)}
+.optrow.off{opacity:.5;cursor:not-allowed}
+.optrow .ot{font-size:14px;font-weight:600}
+.optrow .od{font-size:12.5px;color:var(--text-weak);margin-top:4px;line-height:1.6}
+.optsub{margin:-4px 0 16px 46px;max-width:460px}
+.optsub label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mod);margin-bottom:8px}
+.optsub select,.optsub input{width:100%;height:40px;background:rgba(47,202,255,.06);border:1px solid var(--stroke);border-radius:var(--r-btn);
+  color:var(--text);font-family:var(--font);font-size:13.5px;padding:0 12px;outline:none}
+.optsub select:focus,.optsub input:focus{border-color:var(--accent)}
+.slabottom{border-top:1px solid var(--stroke-weak);margin-top:20px;padding-top:16px}
+.slabottom .optrow{border:none;background:none;padding:9px 0;margin:0}
+.slabottom .optrow:hover{background:none}
+.slabottom .optrow .ot{font-weight:700;display:inline}
+.slabottom .optrow .od{display:inline;margin-left:7px;color:var(--text-mod)}
+.slabottom .optrow svg{width:16px;height:16px;color:var(--text-weak);flex-shrink:0;margin-top:1px}
+.confirm .cline{font-size:14px;color:var(--text-mod);margin-bottom:14px}
+.confirm .cline b{color:var(--text)}
+.confirm .crule{border-top:1px solid var(--stroke-weak);margin:26px 0 22px}
+.confirm h4{font-size:19px;font-weight:800;margin-bottom:20px}
+.confirm .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:620px}
+.confirm .ck{font-size:13px;color:var(--text-weak);margin-bottom:10px}
+.confirm .cv{font-size:14px}
+.objtype{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text-mod)}
+.objtype b{color:var(--text);font-weight:600}
+.plusbtn{width:38px;height:38px;border-radius:var(--r-btn);background:var(--accent-solid);color:#fff;border:none;cursor:pointer;
+  font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center}
+.plusbtn:hover{background:var(--accent-hover)}
+
+/* toasts */
+#toasts{position:fixed;bottom:24px;right:24px;z-index:95;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.toast{display:flex;align-items:flex-start;gap:12px;min-width:310px;max-width:430px;background:var(--modal-grad);
+  border:1px solid var(--border-mod);border-left:3px solid var(--success);border-radius:var(--r-card);box-shadow:var(--e6);padding:14px 16px;
+  animation:tin .22s ease-out}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.toast .tt{font-size:13px;font-weight:700} .toast .td{font-size:12px;color:var(--text-weak);margin-top:3px;line-height:1.5}
+.toast .tc{margin-left:auto;color:var(--text-weak);cursor:pointer;font-size:14px}
+.toast.info{border-left-color:var(--info)}
+
+/* ---------- group restore wizard ---------- */
+/* step 1: restore scope — cards fill the dialog width so the step reads symmetric */
+.scopelist{max-width:none}
+.scopecard{display:flex;gap:15px;align-items:flex-start;padding:18px 22px;border:1px solid var(--stroke-mod);border-radius:var(--r-card);
+  background:rgba(47,202,255,.03);cursor:pointer;margin-bottom:14px;transition:border-color .14s,background .14s}
+.scopecard:hover{border-color:rgba(77,210,210,.45);background:rgba(47,202,255,.06)}
+.scopecard.on{border-color:rgba(77,210,210,.62);background:linear-gradient(90deg,rgba(33,221,170,.17),rgba(47,202,255,.05) 62%)}
+.scopecard .sct{font-size:16.5px;font-weight:700}
+.scopecard .scd{font-size:13px;color:var(--text-mod);margin-top:7px;line-height:1.65}
+.scopecard .rd{margin-top:3px}
+
+/* step 2: snapshot pill on the selected row */
+.snappill{display:inline-flex;align-items:center;gap:9px;height:30px;padding:0 12px;border-radius:6px;border:1px solid rgba(77,210,210,.55);
+  background:rgba(77,210,210,.12);color:var(--text);font-size:12.5px;white-space:nowrap;cursor:pointer}
+.snappill:hover{background:rgba(77,210,210,.2)}
+.snappill svg{width:13px;height:13px;color:var(--accent)}
+.wlist table.flat td.snapcell{text-align:right;padding-right:8px}
+
+/* change-snapshot side drawer */
+.drawerbg{position:fixed;inset:0;background:rgba(3,10,22,.5);backdrop-filter:blur(2px);z-index:88;display:none}
+.drawerbg.open{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(1080px,78vw);background:linear-gradient(180deg,#0b3a63,#0a2b4f);
+  border-left:1px solid var(--border-mod);box-shadow:-18px 0 44px rgba(0,0,0,.38);z-index:89;display:none;flex-direction:column}
+.drawer.open{display:flex;animation:dslide .22s ease-out}
+@keyframes dslide{from{transform:translateX(48px);opacity:.55}to{transform:none;opacity:1}}
+.snapgrid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;align-items:start}
+.snaphd{font-size:12.5px;font-weight:700;color:var(--text-mod);padding:0 14px 12px;border-bottom:1px solid var(--table-bd)}
+.snaprow{display:flex;align-items:center;gap:13px;padding:0 14px;height:52px;border-bottom:1px solid var(--stroke-weak);cursor:pointer;
+  font-size:13.5px}
+.snaprow:hover{background:var(--row-hover)}
+.snaprow.on{background:rgba(77,210,210,.10);box-shadow:inset 3px 0 0 var(--accent)}
+.snaprow svg.cam{width:16px;height:16px;color:var(--text-mod);flex-shrink:0}
+.snapscroll{max-height:calc(100vh - 330px);overflow-y:auto}
+.customdates{display:flex;gap:10px;margin-top:10px}
+.customdates input{flex:1;height:34px;background:rgba(47,202,255,.06);border:1px solid var(--stroke);border-radius:var(--r-btn);
+  color:var(--text);font-family:var(--font);font-size:12.5px;padding:0 10px;outline:none}
+
+/* step 3: restore location */
+.locopt{display:flex;gap:14px;align-items:flex-start;padding:4px 0 18px;cursor:pointer}
+.locopt .lt{font-size:15px;font-weight:700}
+.locopt .ld{font-size:13px;color:var(--text-mod);margin-top:5px;line-height:1.6;max-width:640px}
+.locopt .rd{margin-top:2px}
+.locsub{margin:16px 0 0 0;padding-left:2px}
+/* not scoped to .locsub — the nested-groups block reuses these rows */
+.subopt{display:flex;gap:13px;align-items:flex-start;padding:8px 0;cursor:pointer}
+.subopt .st2{font-size:14px;font-weight:700}
+.subopt .sd2{font-size:12.5px;color:var(--text-weak);margin-top:4px;line-height:1.55}
+.subopt .rd{margin-top:2px}
+.locfield{display:flex;align-items:center;gap:18px;margin:10px 0 4px 29px}
+.locfield label{font-size:13px;color:var(--text-mod);width:132px;flex-shrink:0}
+.locfield input,.locfield select{width:330px;height:38px;background:rgba(47,202,255,.06);border:1px solid var(--stroke);
+  border-radius:var(--r-btn);color:var(--text);font-family:var(--font);font-size:13.5px;padding:0 12px;outline:none}
+.locfield input:focus,.locfield select:focus{border-color:var(--accent)}
+.locrule{border-top:1px solid var(--stroke-weak);margin:8px 0 20px}
+.mfnote{display:flex;align-items:flex-start;gap:13px;font-size:12.5px;color:var(--text-mod);line-height:1.6;max-width:62%}
+.mfnote .bi{color:var(--info);flex-shrink:0;margin-top:1px}
+.mfooter.hasnote{border-top:1px solid var(--accent)}
+
+/* step 3: nested (member) groups */
+.nestbox{border:1px solid var(--stroke-mod);border-radius:var(--r-card);background:rgba(47,202,255,.04);padding:18px 20px;margin:4px 0 22px}
+.nesthd{font-size:15px;font-weight:700;margin-bottom:7px}
+.nestsub{font-size:13px;color:var(--text-mod);line-height:1.6;margin-bottom:12px;max-width:760px}
+.nestbox .subopt{padding:7px 0}
+.nestlist{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 10px 29px}
+.nestrow{display:inline-flex;align-items:center;gap:9px;height:32px;padding:0 12px;border:1px solid var(--stroke-mod);border-radius:20px;
+  background:rgba(47,202,255,.05);font-size:12.5px;cursor:pointer}
+.nestrow:hover{border-color:rgba(77,210,210,.45)}
+.nestrow svg{width:15px;height:15px;color:var(--text-mod)}
+
+/* step 4: confirmation summary */
+.sumrow{display:flex;gap:24px;margin-bottom:20px}
+.sumrow .sk{width:230px;flex-shrink:0;font-size:14px;color:var(--text-mod)}
+.sumrow .sv{font-size:14px;font-weight:700}
+.sumrow .sv .sub{font-weight:400;color:var(--text-mod);margin-top:6px;font-size:13.5px}
+
+/* Narrow viewports stack the grid; a page that can no longer fit 100vh scrolls
+   normally rather than clipping its content. */
+@media (max-width:1180px){
+  .restorecards{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .expect{grid-template-columns:minmax(0,1fr)}
+  .orggrid{grid-template-columns:minmax(0,1fr)}
+  .orggrid .jobs{grid-column:span 1}
+  body.fit,body.fit .wrap{height:auto;overflow:visible}
+  body.fit .orggrid{grid-template-rows:none}
+  body.fit .jobs,body.fit .railcard{height:auto}
+  .chartbox{min-height:240px}
+  .railcard{max-height:620px}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none"><path d="M16 2.6 27.4 9.3v13.4L16 29.4 4.6 22.7V9.3z" fill="url(#rg)" stroke="rgba(255,255,255,.25)"/>
+      <path d="M11.5 21V11.6h5.2c2 0 3.2 1.1 3.2 2.9 0 1.4-.8 2.3-2 2.7l2.4 3.8h-2.6l-2.1-3.4h-1.7V21z" fill="#0b1c31"/>
+      <defs><linearGradient id="rg" x1="4" y1="4" x2="28" y2="28"><stop stop-color="#ffc247"/><stop offset="1" stop-color="#f97316"/></linearGradient></defs></svg>
+    SaaS App Protection
+  </div>
+  <div class="navitems"><span class="active">APPS</span><span>SLA DOMAINS</span><span>EVENTS ▾</span><span>REPORTS</span></div>
+  <div class="navright">
+    <div class="aipill">✦ RUBRIK AI</div>
+    <div class="nicon" title="Notifications">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="dot"></span></div>
+    <div class="nicon" title="Help">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.2-3 4"/><path d="M12 17.5h.01"/></svg></div>
+    <div class="nicon" title="Apps">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="1.9"/><circle cx="12" cy="5" r="1.9"/><circle cx="19" cy="5" r="1.9"/><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/><circle cx="5" cy="19" r="1.9"/><circle cx="12" cy="19" r="1.9"/><circle cx="19" cy="19" r="1.9"/></svg></div>
+    <div class="orgpick">Global Organization <span style="font-size:10px;color:var(--text-weak)">▾</span></div>
+    <div class="avatar">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="crumb" id="crumb"></div>
+  <div class="pagehd" id="pagehd"></div>
+  <div class="hdrule"></div>
+  <div id="app"></div>
+</div>
+
+<div class="menu" id="menu"></div>
+<div class="modalbg" id="modalbg"><div class="modal" id="modal"></div></div>
+<!-- the change-snapshot panel slides in from the right, over the wizard -->
+<div class="drawerbg" id="drawerbg"></div>
+<aside class="drawer" id="drawer"></aside>
+<div id="toasts"></div>
+
+<script>
+/* ===========================================================================
+   Icons
+   =========================================================================== */
+const ICON = {
+  drive:`<svg viewBox="0 0 88 78" fill="none">
+    <path d="M6.6 66.9l3.9 6.6c.8 1.4 1.9 2.5 3.3 3.3l13.7-23.8H0c0 1.6.4 3.1 1.2 4.5z" fill="#fff" fill-opacity=".62"/>
+    <path d="M43.7 25L29.9 1.2c-1.3.8-2.5 1.9-3.3 3.3L1.2 48.5A9.1 9.1 0 0 0 0 53h27.5z" fill="#fff" fill-opacity=".95"/>
+    <path d="M73.6 76.8c1.3-.8 2.5-1.9 3.3-3.3l1.6-2.8 7.6-13.2c.8-1.4 1.2-3 1.2-4.5H59.8l5.9 11.5z" fill="#fff" fill-opacity=".62"/>
+    <path d="M59.8 53H27.5L13.8 76.8c1.3.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.1-.4 4.5-1.2z" fill="#fff" fill-opacity=".95"/>
+    <path d="M73.4 26.5l-12.7-22c-.8-1.4-1.9-2.5-3.3-3.3L43.7 25l16.1 28h27.5c0-1.6-.4-3.1-1.2-4.5z" fill="#fff" fill-opacity=".78"/></svg>`,
+  gmail:`<svg viewBox="0 0 54 40" fill="none">
+    <path d="M4 38h9.4V19.6L1 10.3V35a3 3 0 0 0 3 3z" fill="#fff" fill-opacity=".95"/>
+    <path d="M40.6 38H50a3 3 0 0 0 3-3V10.3L40.6 19.6z" fill="#fff" fill-opacity=".95"/>
+    <path d="M40.6 5.2v14.4L53 10.3V7c0-3.3-3.8-5.2-6.4-3.2z" fill="#fff" fill-opacity=".62"/>
+    <path d="M13.4 19.6V5.2L27 15.4l13.6-10.2v14.4L27 29.8z" fill="#fff" fill-opacity=".78"/>
+    <path d="M1 7v3.3l12.4 9.3V5.2L7.4 3.8C4.8 1.8 1 3.7 1 7z" fill="#fff" fill-opacity=".62"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="#fff" fill-opacity=".92"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></svg>`,
+  google:`<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,.34)" stroke-width="1.4"/>
+    <path d="M17 11.1h-5v2h2.7c-.35 1.5-1.6 2.4-2.7 2.4a3.5 3.5 0 1 1 2.3-6.1l1.5-1.45A5.5 5.5 0 1 0 12 17.5c3.2 0 5.3-2.3 5.3-5.5 0-.34-.1-.6-.3-.9z" fill="#fff"/></svg>`,
+  restore:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.4h4.4"/><path d="M12 8.6v4l2.8 1.7"/></svg>`,
+  shieldcog:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+    <path d="M10.6 2.9 4.3 5.2v5c0 4.1 2.7 7.9 6.3 9 .6-.18 1.2-.42 1.7-.72"/>
+    <path d="M10.6 2.9l6.3 2.3v3.1"/>
+    <circle cx="16.8" cy="16.2" r="2.7"/>
+    <path d="M16.8 12v1.3M16.8 19.1v1.3M13.2 14.1l1.1.65M19.3 17.65l1.1.65M13.2 18.3l1.1-.65M19.3 14.75l1.1-.65"/></svg>`,
+  ou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.2" y="3.2" width="7" height="6" rx="1.2"/><rect x="13.8" y="14.8" width="7" height="6" rx="1.2"/><rect x="3.2" y="14.8" width="7" height="6" rx="1.2"/><path d="M6.7 9.2v5.6M6.7 12h10.6v2.8"/></svg>`,
+  user:`<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.6" r="3.6"/><path d="M12 12.6c-3.6 0-6.6 2.3-6.6 5.2 0 .9.7 1.6 1.6 1.6h10c.9 0 1.6-.7 1.6-1.6 0-2.9-3-5.2-6.6-5.2z"/></svg>`,
+  shared:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 14h18M6.5 4h11l3.5 10v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z"/><path d="M7 18h3"/></svg>`,
+  group:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="9.6" r="2.5"/><path d="M7.4 17.6a4.9 4.9 0 0 1 9.2 0"/></svg>`,
+  shield:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2.8 4.8 5.5v5.2c0 4.4 3 8.4 7.2 9.5 4.2-1.1 7.2-5.1 7.2-9.5V5.5z"/></svg>`,
+  noprot:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>`,
+  clearsla:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>`,
+  cols:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="13" rx="1.6"/><path d="M9.5 4v13M3 8.5h18"/><circle cx="18.5" cy="18.5" r="3.2" fill="#0a2c56"/><path d="M18.5 16.7v.9M18.5 19.4v.9M16.9 17.6l.8.45M19.3 19l.8.45M16.9 19.4l.8-.45M19.3 18l.8-.45"/></svg>`,
+  chev:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>`,
+  chevsm:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>`,
+  searchi:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>`,
+  expand:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>`,
+  okbig:`<svg width="54" height="54" viewBox="0 0 54 54" fill="none"><circle cx="27" cy="27" r="24" stroke="var(--success)" stroke-width="3"/><path d="M17 27.5l7 7 13-14" stroke="var(--success)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  oksm:`<svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.6" stroke="var(--success)" stroke-width="1.7"/><path d="M6.2 10.2l2.6 2.6L14 7.6" stroke="var(--success)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  info:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.7h.01"/></svg>`
+};
+
+/* Full-colour Google marks + Rubrik mark, used inside the wizard illustration only */
+const MARK = {
+  drive:`<svg viewBox="0 0 88 78">
+    <path d="M6.6 66.9l3.9 6.6c.8 1.4 1.9 2.5 3.3 3.3l13.7-23.8H0c0 1.6.4 3.1 1.2 4.5z" fill="#0066da"/>
+    <path d="M43.7 25L29.9 1.2c-1.3.8-2.5 1.9-3.3 3.3L1.2 48.5A9.1 9.1 0 0 0 0 53h27.5z" fill="#00ac47"/>
+    <path d="M73.6 76.8c1.3-.8 2.5-1.9 3.3-3.3l1.6-2.8 7.6-13.2c.8-1.4 1.2-3 1.2-4.5H59.8l5.9 11.5z" fill="#ea4335"/>
+    <path d="M43.7 25l13.8-23.8C56.2.4 54.6 0 53 0H34.5c-1.6 0-3.2.5-4.6 1.2z" fill="#00832d"/>
+    <path d="M59.8 53H27.5L13.8 76.8c1.3.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.1-.4 4.5-1.2z" fill="#2684fc"/>
+    <path d="M73.4 26.5l-12.7-22c-.8-1.4-1.9-2.5-3.3-3.3L43.7 25l16.1 28h27.5c0-1.6-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>`,
+  gmail:`<svg viewBox="0 0 54 40">
+    <path d="M4 38h9.4V19.6L1 10.3V35a3 3 0 0 0 3 3z" fill="#4285f4"/>
+    <path d="M40.6 38H50a3 3 0 0 0 3-3V10.3L40.6 19.6z" fill="#34a853"/>
+    <path d="M40.6 5.2v14.4L53 10.3V7c0-3.3-3.8-5.2-6.4-3.2z" fill="#fbbc04"/>
+    <path d="M13.4 19.6V5.2L27 15.4l13.6-10.2v14.4L27 29.8z" fill="#ea4335"/>
+    <path d="M1 7v3.3l12.4 9.3V5.2L7.4 3.8C4.8 1.8 1 3.7 1 7z" fill="#c5221f"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="#14507f"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></svg>`,
+  rubrik:`<svg viewBox="0 0 32 32"><path d="M16 3l11 6.5v13L16 29 5 22.5v-13z" fill="#0f9e86"/>
+    <path d="M11.8 21.2V11.4h5.5c2 0 3.3 1.2 3.3 3 0 1.4-.8 2.4-2.1 2.8l2.5 4h-2.8l-2.1-3.5h-1.8v3.5z" fill="#e8f4ff"/></svg>`
+};
+/* nest a mark as a sized child <svg> so its own viewBox scales it correctly */
+const nest = (mark,x,y,w,h) => mark.replace('<svg', `<svg x="${x}" y="${y}" width="${w}" height="${h}"`);
+
+/* Isometric "what to expect" illustration — RSC cloud ⇄ Google Workspace cloud */
+function illus(appKey){
+  const cloud = `M38 62c-9 0-16-7-16-16 0-1.4.2-2.8.6-4.1A14 14 0 0 1 19 30c0-7.7 6.3-14 14-14 2 0 3.8.4 5.5 1.2A22 22 0 0 1 79 24.6c1-.3 2.2-.5 3.3-.5 7.2 0 13 5.8 13 13 0 1-.1 2-.4 3A15 15 0 0 1 104 54c0 4.4-2 8.4-5 11.1-2.6 2.3-6 3.6-9.6 3.6H42z`;
+  return `<svg class="illus" viewBox="0 0 420 320" fill="none">
+    <defs>
+      <linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#eaf5ff"/><stop offset="1" stop-color="#a3cdf1"/></linearGradient>
+      <linearGradient id="cl2" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ddefff"/><stop offset="1" stop-color="#93c4ea"/></linearGradient>
+      <linearGradient id="sh" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#31e3b4"/><stop offset="1" stop-color="#0f9e86"/></linearGradient>
+      <linearGradient id="pl" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3b83c8"/><stop offset="1" stop-color="#16416f"/></linearGradient>
+    </defs>
+    <!-- connectors -->
+    <path d="M152 84H246" stroke="#4dd2d2" stroke-width="1.6" stroke-opacity=".7"/>
+    <path d="M296 104V146H162V190" stroke="#4dd2d2" stroke-width="1.6" stroke-opacity=".7"/>
+    <path d="M170 252H258" stroke="#4dd2d2" stroke-width="1.6" stroke-opacity=".55"/>
+    <circle cx="296" cy="146" r="3.4" fill="#4dd2d2"/>
+    <!-- Rubrik cloud -->
+    <g transform="translate(234,32)"><path d="${cloud}" fill="url(#cl)"/>${nest(MARK.rubrik,48,26,30,30)}</g>
+    <!-- Google Workspace app cloud -->
+    <g transform="translate(240,188)"><path d="${cloud}" fill="url(#cl2)"/>${nest(MARK[appKey],46,26,34,32)}</g>
+    <!-- shield on platform -->
+    <g transform="translate(104,176)">
+      <ellipse cx="54" cy="84" rx="50" ry="19" fill="url(#pl)" fill-opacity=".5"/>
+      <path d="M54 10l28 10.4v24.4c0 17-11.8 32.4-28 36.8-16.2-4.4-28-19.8-28-36.8V20.4z" fill="url(#sh)"/>
+      <path d="M40 46l11 11 20-22" stroke="#fff" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <!-- workstation slab -->
+    <g transform="translate(34,42)">
+      <path d="M8 26l62-18 46 22-62 18z" fill="#2a6ba9"/>
+      <path d="M8 26v13l46 22V48z" fill="#123f6d"/>
+      <path d="M116 30v13L54 61V48z" fill="#17527f"/>
+      <g fill="#9fd3ff" fill-opacity=".9">
+        <path d="M30 25l24-7 5 2.4-24 7z"/><path d="M38 31l30-8.6 5 2.4-30 8.6z"/><path d="M46 37l16-4.6 5 2.4-16 4.6z"/>
+      </g>
+    </g>
+  </svg>`;
+}
+
+/* ===========================================================================
+   Data — Google Workspace hierarchy per the RSC GraphQL model
+     GoogleWorkspaceOrg → OrgUnit / User(Drive|Mailbox) / SharedDrive / Group
+   =========================================================================== */
+const DOMAIN = 'demo.rubrikdemo.com';
+const REGION = 'us-west1';
+const ORG = 'Rubrik Demo';
+
+const SLA_DOMAINS = [
+  {name:'GoogleDrive-1d-3m',            objType:'Google Workspace', model:'Self-managed', org:'Global Organization', freq:'24 hours', ret:'91 days',  retLabel:'3 months'},
+  {name:'Workspace-12h-6m',             objType:'Google Workspace', model:'Self-managed', org:'Global Organization', freq:'12 hours', ret:'183 days', retLabel:'6 months'},
+  {name:'Microsoft 365 Backup Storage', objType:'Microsoft 365',    model:'Rubrik-managed', org:'Global Organization', freq:'24 hours', ret:'365 days', retLabel:'1 year'},
+  {name:'SFDC-12h-1m',                  objType:'Salesforce',       model:'Self-managed', org:'Global Organization', freq:'12 hours', ret:'30 days',  retLabel:'1 month'},
+  {name:'Jira-24h-3m',                  objType:'Atlassian Jira',   model:'Self-managed', org:'Global Organization', freq:'24 hours', ret:'91 days',  retLabel:'3 months'},
+  {name:'Dynamics365-12h-1m',           objType:'Dynamics 365',     model:'Self-managed', org:'Global Organization', freq:'12 hours', ret:'30 days',  retLabel:'1 month'}
+];
+const WS_SLA = SLA_DOMAINS.filter(s=>s.objType==='Google Workspace');
+const slaOf = n => SLA_DOMAINS.find(s=>s.name===n) || null;
+
+const OUS = ['Finance OU','Rubrik Demo','Rubrik Demo Specialists','Suspended Users','Workspace Guests'];
+
+/* ---------------------------------------------------------------------------
+   Per-app flow scope. Google Drive and Gmail keep the shipping behaviour
+   (Restore + Manage Protection tabs, including Restore at Scale). Workspace
+   Settings — the new card — is Restore only, with just Restore Group for now.
+   The Manage Protection and at-scale code below is intact: flip a flag to
+   bring either flow back for an app.
+   --------------------------------------------------------------------------- */
+const FLOWS = {
+  drive:    {protect:true,  atScale:true},
+  gmail:    {protect:true,  atScale:true},
+  settings: {protect:false, atScale:false}
+};
+
+const APPS = {
+  drive:{key:'drive', name:'Google Drive', icon:'drive', sla:'GoogleDrive-1d-3m',
+    subtabs:[['ou','Organizational Units'],['user','Users'],['shared','Shared Drives'],['group','Groups']],
+    cardRows:[['user','Users'],['shared','Shared Drives']]},
+  gmail:{key:'gmail', name:'Gmail, Calendar and Contacts', icon:'gmail', sla:'GoogleDrive-1d-3m',
+    subtabs:[['ou','Organizational Units'],['user','Users'],['group','Groups']],
+    cardRows:[['user','Users']]},
+  settings:{key:'settings', name:'Workspace Settings', icon:'settings', sla:'Workspace-12h-6m',
+    subtabs:[['group','Groups']],
+    cardRows:[['group','Groups']]}
+};
+
+/* people: [name, handle, driveGB, mailGB, ouIndex, status] */
+const PEOPLE = [
+  ['Alex Mcewan','alex.mcewan',6.8,4.8,1,'Active'],      ['Alex Tsakalos','alex.tsakalos',5.9,3.9,2,'Active'],
+  ['Alpika Singh','alpika.singh',5.4,3.6,1,'Active'],     ['Andrew Elluru','andrew.elluru',4.7,3.2,2,'Active'],
+  ['Calvin Luu','calvin.luu',4.2,2.9,1,'Active'],         ['Carl Norwich','carl.norwich',3.8,2.7,1,'Active'],
+  ['Danny Page','danny.page',3.4,2.5,2,'Active'],         ['Dean Levy','dean.levy',2.9,2.3,1,'Active'],
+  ['Irshad Allana','irshad.allana',2.4,2.1,1,'Active'],   ['Jolaine Yezzi','jolaine.yezzi',2.0,1.9,2,'Active'],
+  ['Marta Kowalski','marta.kowalski',1.7,1.6,0,'Active'], ['Nikhil Rao','nikhil.rao',1.4,1.3,4,'Active'],
+  ['Priya Raghavan','priya.raghavan',1.1,1.0,0,'Active'], ['Kenji Watanabe','kenji.watanabe',0.5,0.9,2,'Active'],
+  ['Devi Menon','devi.menon',0,0,3,'Relic'],              ['Owen Blake','owen.blake',0,0,3,'Relic'],
+  ['Sara Lindqvist','sara.lindqvist',0,0,4,'Active'],     ['Tom Ferreira','tom.ferreira',0,0,4,'Active']
+];
+
+let SEED = 0;
+const uuid = () => {
+  SEED++;
+  const h = (n,len) => (n*2654435761 % 16**len).toString(16).padStart(len,'0');
+  return `${h(SEED+11,8)}-${h(SEED+29,4)}-4${h(SEED+7,3)}-a${h(SEED+53,3)}-${h(SEED+97,8)}${h(SEED+131,4)}`;
+};
+const gid = () => '0' + String(10**11 + SEED++ * 7919283).slice(0,13);
+
+const OBJECTS = [];
+const add = o => { OBJECTS.push(Object.assign({id:'o'+(OBJECTS.length+1), protected:true, assignment:'Derived', size:0, snaps:92}, o)); };
+
+// Organizational units — assignment containers, tracked per app (each app assigns its own SLA)
+['drive','gmail'].forEach(app=>{
+  OUS.forEach((name,i)=> add({kind:'ou', app, name, email:'—', natId:gid(), sla:i===3?null:APPS[app].sla,
+    assignment:i===3?'Direct':'Derived', protected:i!==3, users:[3,6,4,2,3][i], size:0, snaps:0}));
+});
+
+// User drives (Google Drive) + mailboxes (Gmail) — one object per app per person
+PEOPLE.forEach(([name,handle,dGB,mGB,ouIx,status])=>{
+  const email = handle+'@'+DOMAIN, on = dGB>0;
+  add({kind:'user', app:'drive', name, email, ou:OUS[ouIx], status, size:dGB, natId:uuid(),
+    sla:on?APPS.drive.sla:null, assignment:on?'Derived':'Unassigned', protected:on, snaps:on?92:0});
+  add({kind:'user', app:'gmail', name, email, ou:OUS[ouIx], status, size:mGB, natId:uuid(),
+    sla:mGB>0?APPS.gmail.sla:null, assignment:mGB>0?'Derived':'Unassigned', protected:mGB>0, snaps:mGB>0?92:0});
+});
+
+// Shared drives (Google Drive)
+[['Engineering Docs',12.4,true],['Sales and Marketing',8.1,true],['Finance Vault',5.2,true],
+ ['People Ops',3.9,true],['Product Design',2.39,true],['Legal Archive',0,false],['Brand Assets',0,false]
+].forEach(([name,size,on])=> add({kind:'shared', app:'drive', name, email:'—', size, natId:uuid(),
+  sla:on?APPS.drive.sla:null, assignment:on?'Derived':'Unassigned', protected:on, snaps:on?92:0}));
+
+// Google groups — the protected object under Workspace Settings, and an assignment
+// container under Google Drive / Gmail. Tracked per app, like organizational units.
+const GROUPS = [['All Employees','all-employees',248,0.096,true],['Engineering','engineering',96,0.062,true],
+ ['Sales','sales',42,0.048,true],['Support','support',23,0.038,true],['Product','product',21,0.034,true],
+ ['Marketing','marketing',18,0.028,true],['Security','security',14,0.026,true],['Interns','interns',11,0.022,true],
+ ['Finance','finance',9,0.020,true],['Leadership','leadership',8,0.018,true],['People Ops','people-ops',7,0.016,true],
+ ['Legal','legal',5,0.012,true],['Field Sales EMEA','field-sales-emea',34,0,false],
+ ['Customer Advisory Board','cab',26,0,false],['On-Call Rotation','oncall',19,0,false],
+ ['Recruiting','recruiting',12,0,false],['Design Reviews','design-reviews',9,0,false],
+ ['Partner Enablement','partners',7,0,false]];
+const GTYPE = ['Email list','Collaborative inbox','Security'];
+['drive','gmail','settings'].forEach(app=>{
+  GROUPS.forEach(([name,handle,members,size,on],i)=> add({kind:'group', app, name, email:handle+'@'+DOMAIN,
+    members, size:app==='settings'?size:0, natId:uuid(), sla:on?APPS[app].sla:null,
+    assignment:on?'Derived':'Unassigned', protected:on, snaps:on?78:0,
+    gtype:GTYPE[i%3], status:i===11?'Relic':'Active',
+    aliases:i%2 ? [handle+'-all@'+DOMAIN] : []}));
+});
+
+/* ---------------------------- derived helpers ---------------------------- */
+const byId = id => OBJECTS.find(o=>o.id===id);
+/* Every object belongs to exactly one app: organizational units and groups exist once
+   per app so each app carries its own SLA Domain assignment, as RSC does. */
+const listFor = (app,kind) => OBJECTS.filter(o=>o.kind===kind && o.app===app);
+const cardList = listFor;
+const appSize = app => APPS[app].cardRows.reduce((s,[k])=>s + cardList(app,k).filter(o=>o.protected).reduce((a,o)=>a+o.size,0), 0);
+function appCompliance(app){
+  const p = APPS[app].cardRows.flatMap(([k])=>cardList(app,k)).filter(o=>o.protected && o.snaps>0);
+  return p.length ? 100 : null;
+}
+const num = n => n.toLocaleString('en-US');
+const gb = n => n>=0.1 ? parseFloat(n.toFixed(2))+' GB' : Math.max(1,Math.round(n*1024))+' MB';
+const pct = p => (Number.isInteger(p) ? p : p.toFixed(1)) + '%';
+const KIND = {ou:'Organizational Unit', user:'User', shared:'Shared Drive', group:'Group'};
+const KINDS = {ou:'organizational units', user:'users', shared:'shared drives', group:'groups'};
+
+const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const NOW = new Date('2026-08-18T14:52:00');
+/* deterministic snapshot list, newest first: "18 August 2026 at 14:06" */
+function snapList(o){
+  if(!o.protected || !o.snaps) return [];
+  const seed = o.natId.charCodeAt(2) + o.name.length;
+  return Array.from({length:10},(_,i)=>{
+    const d = new Date(NOW.getTime() - i*864e5);
+    const hh = 12 + ((seed+i)%3), mm = (seed*7 + i*13) % 60;
+    return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()} at ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  });
+}
+const fmtD = d => MONS[d.getMonth()]+' '+String(d.getDate()).padStart(2,'0');
+
+/* ===========================================================================
+   State + routing
+   =========================================================================== */
+const S = {view:'org', app:'drive', tab:'restore', sub:'ou', q:'', sel:new Set(), sort:{col:null,dir:1},
+           slaFilter:new Set(), range:'7'};
+
+function go(view, opts={}){
+  Object.assign(S, {view, q:'', sel:new Set(), sort:{col:null,dir:1}, slaFilter:new Set()}, opts);
+  if(view==='app'){
+    if(!opts.tab || !FLOWS[S.app].protect) S.tab = 'restore';
+    if(!opts.sub || !APPS[S.app].subtabs.some(([k])=>k===S.sub)) S.sub = APPS[S.app].subtabs[0][0];
+  }
+  closeMenu(); render();
+  if(location.hash !== hashFor()) location.hash = hashFor();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function hashFor(){
+  if(S.view!=='app') return '#/org';
+  return '#/app/'+S.app+'/'+S.tab + (S.tab==='protect' ? '/'+S.sub : '');
+}
+function applyHash(){
+  const p = (location.hash||'').replace(/^#\/?/,'').split('/');
+  if(p[0]==='app' && APPS[p[1]]) go('app', {app:p[1], tab:p[2]==='protect'?'protect':'restore', sub:p[3]});
+  else go('org');
+}
+window.addEventListener('hashchange', ()=>{ if(location.hash !== hashFor()) applyHash(); });
+
+/* ===========================================================================
+   Render
+   =========================================================================== */
+function render(){
+  const crumb=document.getElementById('crumb'), hd=document.getElementById('pagehd'), app=document.getElementById('app');
+  document.body.classList.toggle('fit', S.view==='org');  // org page fits the viewport
+  if(S.view==='org'){
+    crumb.innerHTML = `<a data-act="apps">Apps</a><span class="sep">›</span><span>Google Workspace</span>`;
+    hd.innerHTML = `<div class="pgico">${ICON.google}</div><div><h1>${ORG}</h1></div>
+      <div class="pgactions"><button class="iconbtn" data-act="menu-kebab">···</button></div>`;
+    app.innerHTML = viewOrg();
+    drawChart();
+  } else {
+    const a = APPS[S.app];
+    crumb.innerHTML = `<a data-act="apps">Apps</a><span class="sep">›</span><a data-act="org">${ORG}</a>`+
+      `<span class="sep">›</span><span>${a.name}</span>`;
+    hd.innerHTML = `<div class="pgico">${ICON[a.icon]}</div>
+      <div><h1>${ORG} <span class="thin">|</span> ${a.name}</h1></div>`;
+    app.innerHTML = viewApp();
+  }
+}
+
+/* ------------------------------- ORG page ------------------------------- */
+function viewOrg(){
+  return `<div class="orggrid">
+    ${Object.keys(APPS).map(appCard).join('')}
+    ${jobsCard()}
+    <div class="card railcard">${rail()}</div>
+  </div>`;
+}
+
+function appCard(key){
+  const a = APPS[key], c = appCompliance(key);
+  const comp = c===null
+    ? `<div class="ac-metric"><div class="v" style="color:var(--text-weak);font-size:16px">Not protected</div>
+        <div class="l">No SLA Domain assigned</div></div>`
+    : `<div class="ac-metric comp"><div class="v">${ICON.oksm} ${pct(c)} Compliant</div>
+        <div class="l">with SLA Domain ${info('Percentage of protected objects meeting the frequency and retention of their SLA Domain.')}</div></div>`;
+  return `<div class="card appcard" data-act="open-app" data-app="${key}">
+    <div class="ac-hd"><div class="ac-logo">${ICON[a.icon]}</div><div class="ac-name">${a.name}</div>
+      <div class="ac-go">${ICON.chev}</div></div>
+    <div class="ac-mid">
+      <div class="ac-metric"><div class="v">${gb(appSize(key))}</div>
+        <div class="l">Backed up in RSC ${info('Total logical size stored for this Workspace app in Rubrik Security Cloud.')}</div></div>
+      ${comp}
+    </div>
+    <div class="ac-ft">${a.cardRows.map(([kind,label])=>{
+      const all = cardList(key,kind), p = all.filter(o=>o.protected).length;
+      return `<div class="ac-obj"><div class="rl">${label}</div>
+        <div class="rv"><b>${num(p)}</b><span class="st">Protected</span><span class="tot">${num(all.length)}</span></div>
+        <div class="bar"><i class="${p?'':'none'}" style="width:${all.length?Math.round(p/all.length*100):0}%"></i></div></div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function rail(){
+  const users = cardList('gmail','user').filter(o=>o.protected).length;
+  const cap = Object.keys(APPS).reduce((s,k)=>s+appSize(k),0);
+  return `
+  <div class="rsec"><h3>Status</h3>
+    <div class="connrow">${ICON.okbig}
+      <div class="cfield"><div class="cl">Status</div><div class="cv">Connected</div></div>
+      <div class="cfield"><div class="cl">Last Updated</div><div class="cv">Aug 18, 2026 &nbsp;2:52 PM</div></div></div></div>
+  <div class="rsec"><h3>Take On-Demand Snapshot</h3>
+    <div class="snapblock"><div class="rtext">Take an on-demand snapshot before making any changes or updating the system.</div>
+      <button class="btn primary" data-act="snap-org">Take Snapshot</button></div></div>
+  <div class="rsec">
+    <div class="rhd"><h3>Backup Summary</h3><button class="linkbtn" data-act="menu-protect-org">Manage Protection ▾</button></div>
+    <div class="rtext">The storage location for Google Workspace backups is the GCP region ${REGION}.</div>
+    <table class="rtable"><thead><tr><th>Workspace App</th><th>SLA Domain</th><th>Frequency</th><th>Retention</th></tr></thead>
+      <tbody>${Object.keys(APPS).map(k=>{
+        const a=APPS[k], s=slaOf(a.sla), on=APPS[k].cardRows.some(([kk])=>cardList(k,kk).some(o=>o.protected));
+        return `<tr><td class="tr" title="${a.name}">${a.name.split(',')[0]}${a.name.includes(',')?',…':''}</td>
+          <td class="tr" title="${a.sla}">${on?a.sla:'—'}</td><td>${on?s.freq:'—'}</td><td>${on?s.retLabel:'—'}</td></tr>`;
+      }).join('')}</tbody></table></div>
+  <div class="rsec"><h3>License Usage for ${ORG}</h3>
+    <div class="lic"><div><div class="ll">Protected Users</div><div class="lv">${num(users)} <small>/ 25</small></div></div>
+      <div><div class="ll">Used Capacity</div><div class="lv">${gb(cap)}</div></div></div>
+    <div class="bar" style="margin-top:16px"><i style="width:${Math.round(users/25*100)}%"></i></div></div>`;
+}
+
+function jobsCard(){
+  return `<div class="card jobs">
+    <div class="jobshd"><h3>Backup Jobs</h3>
+      <div class="sel"><select data-act="range">
+        <option value="7"${S.range==='7'?' selected':''}>Past 7 days</option>
+        <option value="30"${S.range==='30'?' selected':''}>Past 30 days</option>
+        <option value="90"${S.range==='90'?' selected':''}>Past 90 days</option></select></div>
+      <div class="sel"><select><option>All Objects</option><option>Users</option><option>Shared Drives</option><option>Groups</option></select></div>
+      <button class="linkbtn" style="margin-left:auto" data-act="toast" data-title="Events"
+        data-msg="Opening Events filtered to Google Workspace backup jobs.">View events</button></div>
+    <div class="chartgrid">
+      <div class="chartbox" id="chartbox"><svg id="chart" preserveAspectRatio="none"></svg></div>
+      <div class="legend" id="legend"></div></div></div>`;
+}
+
+function drawChart(){
+  const svg=document.getElementById('chart'), box=document.getElementById('chartbox'); if(!svg||!box) return;
+  // draw in real pixels so labels never stretch when the card flexes to fill height
+  const W=Math.max(420, box.clientWidth||900), H=Math.max(200, box.clientHeight||262);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const days=parseInt(S.range,10), L=56,R=10,T=14,B=32;
+  const x=i=>L+(W-L-R)*(i/(days-1)), y=v=>T+(H-T-B)*(1-v/100);
+  const succ=[]; for(let i=0;i<days;i++){
+    let s=100;
+    if(days>7){ const dip=Math.floor(days*0.42), drop=Math.floor(days*0.66);
+      if(i===dip) s=97.2; if(i>=drop) s=98.4; }
+    succ.push(s);
+  }
+  const fail=succ.map(v=>100-v);
+  const pts=a=>a.map((v,i)=>x(i)+','+y(v)).join(' ');
+  const step=days<=7?1:Math.ceil(days/7), labels=[];
+  for(let i=0;i<days;i+=step) labels.push([i,fmtD(new Date(NOW.getTime()-(days-1-i)*864e5))]);
+  if(labels[labels.length-1][0]!==days-1) labels.push([days-1,fmtD(NOW)]);
+  svg.innerHTML = `
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#21ddaa" stop-opacity=".40"/><stop offset="1" stop-color="#21ddaa" stop-opacity="0"/></linearGradient></defs>
+    ${[0,20,40,60,80,100].map(v=>`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="rgba(160,199,255,.16)"
+        stroke-width="1" ${v===0?'':'stroke-dasharray="3 4"'}/>
+      <text x="${L-12}" y="${y(v)+4}" fill="#c6cbcb" font-size="11" text-anchor="end" font-family="Open Sans">${v?v+'%':'0'}</text>`).join('')}
+    <text x="18" y="${H/2}" fill="#c6cbcb" font-size="11" font-family="Open Sans" transform="rotate(-90 18 ${H/2})" text-anchor="middle">Users</text>
+    <polygon fill="url(#ga)" points="${L},${y(0)} ${pts(succ)} ${W-R},${y(0)}"/>
+    <polyline fill="none" stroke="#21ddaa" stroke-width="2.4" points="${pts(succ)}"/>
+    <polyline fill="none" stroke="#ff5664" stroke-width="2.4" points="${pts(fail)}"/>
+    ${labels.map(([i,t])=>`<text x="${x(i)}" y="${H-8}" fill="#c6cbcb" font-size="11" font-family="Open Sans" text-anchor="middle">${t}</text>`).join('')}`;
+  const avg = succ.reduce((a,b)=>a+b,0)/succ.length;
+  document.getElementById('legend').innerHTML =
+    `<div class="lrow"><span class="m" style="background:#ff5664;color:#ff5664"></span><b>${pct(+(100-avg).toFixed(1))}</b> Failed</div>
+     <div class="lrow"><span class="m" style="background:#21ddaa;color:#21ddaa"></span><b>${pct(+avg.toFixed(1))}</b> Succeeded</div>
+     <div class="note">The above values represent the percentage of failed and successful backup jobs for the selected time period.</div>`;
+}
+
+/* ------------------------------- APP page ------------------------------- */
+function viewApp(){
+  if(!FLOWS[S.app].protect) return restoreTab();   // single flow: no tab bar
+  const tabs = `<div class="tabsmain">
+    <div class="t ${S.tab==='restore'?'active':''}" data-act="tab" data-tab="restore">${ICON.restore} Restore</div>
+    <div class="t ${S.tab==='protect'?'active':''}" data-act="tab" data-tab="protect">${ICON.shieldcog} Manage Protection</div></div>`;
+  return tabs + (S.tab==='restore' ? restoreTab() : protectTab());
+}
+
+/* ---- restore landing ---- */
+const RESTORE_CARDS = {
+  drive:[
+    {k:'user',   t:'Restore User',         d:"Restore the user's entire Google Drive or specific files and folders."},
+    {k:'shared', t:'Restore Shared Drive', d:'Restore the entire shared drive or specific files and folders.'},
+    {k:'scale',  t:'Restore at Scale',     d:'Restore all Google Drive data, or data of groups or organizational units.'}],
+  gmail:[
+    {k:'user',  t:'Restore User',      d:"Restore the user's entire mailbox, calendar and contacts, or specific items."},
+    {k:'scale', t:'Restore at Scale',  d:'Restore all Gmail, Calendar and Contacts data, or data of groups or organizational units.'}],
+  settings:[
+    {k:'group', t:'Restore Group',     d:'Restore a full group, or only its membership list, settings or metadata.'},
+    {k:'scale', t:'Restore at Scale',  d:'Restore all group configuration data, or data of organizational units.'}]
+};
+function restoreTab(){
+  const cards = RESTORE_CARDS[S.app].filter(c => FLOWS[S.app].atScale || c.k!=='scale');
+  return `<div class="restorecards">${cards.map(c=>`
+    <div class="card rcard">
+      <div class="rc-hd"><h3>${c.t}</h3></div>
+      <div class="rc-body"><div class="d">${c.d}</div>
+        <button class="rc-btn" data-act="restore" data-kind="${c.k}">Get Started</button></div>
+    </div>`).join('')}</div>`;
+}
+
+/* ---- manage protection ---- */
+const SLA_LABEL = o => o.sla ? o.sla : (o.assignment==='Direct' ? "Don't Protect" : 'No SLA Domain');
+
+function protectTab(){
+  const a = APPS[S.app];
+  const rows = filterRows(listFor(S.app,S.sub));
+  const pills = `<div class="pilltabs">${a.subtabs.map(([k,l])=>
+    `<div class="pill ${k===S.sub?'active':''}" data-act="sub" data-sub="${k}">${l}</div>`).join('')}</div>`;
+  const bar = `<div class="mpbar">
+      <span class="selcount">${S.sel.size ? `<b>${S.sel.size}</b> selected · <span class="inlinelink" data-act="clear-sel">Clear</span>` : ''}</span>
+      <div class="right">
+        <button class="btn primary" data-act="mp-open" ${S.sel.size?'':'disabled'}>Manage Protection</button>
+        <div class="search sm"><span class="si">${ICON.searchi}</span>
+          <input id="q" placeholder="Search by ${S.sub==='ou'?'organizational unit':S.sub==='shared'?'shared drive':S.sub} name" value="${S.q}" data-act="q"></div>
+      </div></div>`;
+  return pills + bar + `<div class="mpgrid">
+      <div class="frail">${slaRail()}</div>
+      <div>${protectTable(rows)}</div></div>`;
+}
+
+function slaRail(){
+  const opt = (v,label) => `<label class="fropt"><input type="checkbox" class="cb" data-act="slaf" data-v="${v}"
+     ${S.slaFilter.has(v)?'checked':''}><span>${label}</span></label>`;
+  return `<div class="frgroup">
+    <div class="frhd" data-act="fr-toggle">SLA Domain <span class="cr">▲</span></div>
+    <div class="frbody">
+      ${opt("__none","Don't Protect")}${opt("__nosla","No SLA Domain")}
+      <span class="frclear" data-act="clear-slaf">Clear</span>
+      ${SLA_DOMAINS.map(s=>opt(s.name, s.name.length>22 ? s.name.slice(0,20)+'…' : s.name)).join('')}
+    </div></div>`;
+}
+
+function filterRows(list){
+  const q = S.q.trim().toLowerCase();
+  let rows = list.filter(o=>{
+    if(q && !(o.name.toLowerCase().includes(q) || (o.email||'').toLowerCase().includes(q))) return false;
+    if(S.slaFilter.size){
+      const key = o.sla ? o.sla : (o.assignment==='Direct' ? '__none' : '__nosla');
+      if(!S.slaFilter.has(key)) return false;
+    }
+    return true;
+  });
+  if(S.sort.col){
+    const k = S.sort.col;
+    rows = rows.slice().sort((m,n)=>{
+      const A = k==='size'?m.size:(k==='sla'?(m.sla||''):(m[k]||'')), B = k==='size'?n.size:(k==='sla'?(n.sla||''):(n[k]||''));
+      return (A>B?1:A<B?-1:0)*S.sort.dir;
+    });
+  }
+  return rows;
+}
+
+function th(label,col,cls=''){
+  const on = S.sort.col===col;
+  return `<th class="s ${cls}" data-act="sort" data-col="${col}">${label}${on?`<span class="ar">${S.sort.dir>0?'▲':'▼'}</span>`:''}</th>`;
+}
+
+function protectTable(rows){
+  const kind = S.sub;
+  const idLabel = {ou:'Organizational Unit ID', user:'User ID', shared:'Shared Drive ID', group:'Group ID'}[kind];
+  const extra = {ou:'<th class="tac">Users</th>', user:'<th>Status</th>'+th('Organizational Unit','ou'),
+                 shared:'', group:'<th class="tac">Members</th>'}[kind];
+  const head = `<tr><th class="cbcell"><input type="checkbox" class="cb" data-act="sel-all"
+      ${rows.length && rows.every(o=>S.sel.has(o.id))?'checked':''}></th>
+    ${th(KIND[kind],'name')}${kind==='ou'?'':th('Email ID','email')}${extra}${th('SLA Domain','sla')}
+    <th>Assignment</th><th>${idLabel}</th><th class="tac" style="width:52px">
+      <span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose which columns to display.">${ICON.cols}</span></th></tr>`;
+  if(!rows.length) return `<table class="flat"><thead>${head}</thead></table>
+    <div class="empty">No ${KINDS[kind]} match the current filters.</div>`;
+  const body = rows.map(o=>{
+    // lazy per-kind cells: an object literal would evaluate every branch
+    let cells = '';
+    if(kind==='ou')         cells = `<td class="tac">${o.users}</td>`;
+    else if(kind==='user')  cells = `<td>${o.status}</td><td>${o.ou}</td>`;
+    else if(kind==='group') cells = `<td class="tac">${num(o.members)}</td>`;
+    return `<tr class="${S.sel.has(o.id)?'rowsel':''}" data-act="row" data-id="${o.id}">
+      <td class="cbcell"><input type="checkbox" class="cb" data-act="sel" data-id="${o.id}" ${S.sel.has(o.id)?'checked':''}></td>
+      <td><div class="oname">${ICON[kind==='ou'?'ou':kind==='user'?'user':kind==='shared'?'shared':'group']}
+        <span class="nn">${o.name}</span></div></td>
+      ${kind==='ou'?'':`<td class="muted" title="${o.email}">${o.email}</td>`}
+      ${cells}
+      <td>${SLA_LABEL(o)}</td>
+      <td>${o.assignment==='Unassigned'?'<span class="muted">—</span>':o.assignment}</td>
+      <td class="muted" title="${o.natId}" style="max-width:190px;font-family:'Fira Code',monospace;font-size:12px">${o.natId}</td>
+      <td class="tac"><span class="kebab" data-act="row-menu" data-id="${o.id}">···</span></td></tr>`;
+  }).join('');
+  return `<table class="flat"><thead>${head}</thead><tbody>${body}</tbody></table>
+    <div class="tabnote">${rows.length} of ${listFor(S.app,kind).length} ${KINDS[kind]}</div>`;
+}
+
+/* ===========================================================================
+   Modal plumbing
+   =========================================================================== */
+const bg=document.getElementById('modalbg'), md=document.getElementById('modal');
+function openModal(html,small){ md.className='modal'+(small?' sm':''); md.innerHTML=html; bg.classList.add('open'); }
+function closeModal(){ bg.classList.remove('open'); md.innerHTML=''; RW.on=false; MP.on=false; GW.on=false; }
+bg.addEventListener('click', e=>{ if(e.target===bg) closeModal(); });
+
+/* right-side drawer — the change-snapshot panel slides over the wizard */
+const dbg=document.getElementById('drawerbg'), dr=document.getElementById('drawer');
+function openDrawer(html){ dr.innerHTML=html; dr.classList.add('open'); dbg.classList.add('open'); }
+function closeDrawer(){ dr.classList.remove('open'); dbg.classList.remove('open'); dr.innerHTML=''; }
+dbg.addEventListener('click', closeDrawer);
+const drawerOpen = () => dr.classList.contains('open');
+
+const menuEl=document.getElementById('menu');
+function openMenu(anchor,html){
+  menuEl.innerHTML=html; menuEl.classList.add('open');
+  const r=anchor.getBoundingClientRect(), w=menuEl.offsetWidth;
+  menuEl.style.top=(r.bottom+window.scrollY+7)+'px';
+  menuEl.style.left=Math.max(12,Math.min(r.right-w+window.scrollX, window.innerWidth-w-14))+'px';
+}
+function closeMenu(){ menuEl.classList.remove('open'); }
+
+function toast(title,msg,kind){
+  const t=document.createElement('div');
+  t.className='toast'+(kind==='info'?' info':'');
+  t.innerHTML=`<div><div class="tt">${title}</div><div class="td">${msg}</div></div><span class="tc">✕</span>`;
+  t.querySelector('.tc').onclick=()=>t.remove();
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>t.remove(),6500);
+}
+function stepper(cur,total){
+  return `<div class="stepper">${Array.from({length:total},(_,i)=>{
+    const n=i+1, cls = n<cur?'done':n===cur?'cur':'';
+    return `<div class="st ${cls}"><div class="c">${n<cur?'✓':n}</div>${n<total?'<div class="ln"></div>':''}</div>`;
+  }).join('')}</div>`;
+}
+const mhd = (title,expand)=>`<div class="mhd"><h2>${title}</h2><div class="mact">
+  ${expand?`<span data-act="toast" data-title="Expand" data-msg="Expanding the dialog to full screen.">${ICON.expand}</span>`:''}
+  <span data-act="close-modal">✕</span></div></div>`;
+
+/* ===========================================================================
+   Restore wizard
+   =========================================================================== */
+const RESTORE_META = {
+  user:{title:'Restore a User', step2:'Select Users and Recovery Point', ph:'Search by user name', kind:'user',
+    lead:'To successfully restore user drives or specific folders and files, complete the following steps:',
+    items:[['Select What to Restore','Select users or specific files and folders you want to restore. Select the snapshot from which you want to restore. Relevant metadata for the selected items is also restored.'],
+           ['Select a Restore Location','Choose whether you want to restore to the original user or a different user.'],
+           ['Select Restore Options','Choose whether you want to restore in-place or to a new folder.']],
+    note:'Note: In bulk restore, data can only be restored to the original location with the same path.',
+    locOrig:'Restore to the original user', locOther:'Restore to a different user'},
+  shared:{title:'Restore a Shared Drive', step2:'Select Shared Drives and Recovery Point', ph:'Search by shared drive name', kind:'shared',
+    lead:'To successfully restore shared drives or specific folders and files, complete the following steps:',
+    items:[['Select What to Restore','Select shared drives or specific files and folders you want to restore. Select the snapshot from which you want to restore. Relevant metadata for the selected items is also restored.'],
+           ['Select a Restore Location','Choose whether you want to restore to the original shared drive or a different shared drive.'],
+           ['Select Restore Options','Choose whether you want to restore in-place or to a new folder.']],
+    note:'Note: In bulk restore, data can only be restored to the original location with the same path.',
+    locOrig:'Restore to the original shared drive', locOther:'Restore to a different shared drive'},
+  group:{title:'Restore a Group', step2:'Select Groups and Recovery Point', ph:'Search by group name', kind:'group',
+    lead:'To successfully restore group settings and membership, complete the following steps:',
+    items:[['Select What to Restore','Select the groups you want to restore. Select the snapshot from which you want to restore. Group settings and membership are restored.'],
+           ['Select a Restore Location','Choose whether you want to restore to the original group or a different group.'],
+           ['Select Restore Options','Choose whether to replace the current membership or merge the snapshot membership into it.']],
+    note:'Note: Group settings are always restored together with membership.',
+    locOrig:'Restore to the original group', locOther:'Restore to a different group'},
+  scale:{title:'Restore at Scale', step2:'Select Scope and Recovery Point', ph:'Search', kind:'scale',
+    lead:'To restore data at scale, complete the following steps:',
+    items:[['Select What to Restore','Select all data of this Workspace app, or restrict the restore to specific groups or organizational units. Select the snapshot from which you want to restore.'],
+           ['Select a Restore Location','Bulk restores are always written back to the original location.'],
+           ['Select Restore Options','Choose whether you want to restore in-place or to a new folder.']],
+    note:'Note: In bulk restore, data can only be restored to the original location with the same path.',
+    locOrig:'Restore to the original location', locOther:'Restore to a different location'}
+};
+
+const RW = {on:false};
+function openRestore(kind){
+  const m = RESTORE_META[kind];
+  Object.assign(RW, {on:true, kind, m, step:1, skipIntro:false, sel:new Set(), q:'',
+    ouF:new Set(), status:'Active', changeRp:false, rp:{}, loc:'orig', locTarget:null,
+    opt:'inplace', folder:'Rubrik Restore 18 Aug 2026', scope:'all', scopeSel:new Set()});
+  rwRender();
+}
+function rwPool(){
+  const k = RW.kind==='scale' ? (RW.scope==='group'?'group':RW.scope==='ou'?'ou':'user') : RW.kind;
+  return listFor(S.app,k).filter(o=>o.protected);
+}
+function rwRows(){
+  const q=RW.q.trim().toLowerCase();
+  return rwPool().filter(o=>{
+    if(q && !(o.name.toLowerCase().includes(q)||(o.email||'').toLowerCase().includes(q))) return false;
+    if(RW.kind==='user'){
+      if(RW.ouF.size && !RW.ouF.has(o.ou)) return false;
+      if(o.status!==RW.status) return false;
+    }
+    return true;
+  });
+}
+function rwRender(){
+  const m=RW.m, tot=4;
+  let body='', footer='', wide=true;
+  if(RW.step===1){
+    body = `<div class="mbody"><h3>What to Expect</h3>
+      <div class="expect"><div>
+        <div class="lead" style="margin-bottom:30px">${m.lead}</div>
+        ${m.items.map(([h,p],i)=>`<div class="exitem"><h4>${h}</h4><p>${p}${i===0?' '+info('Sharing permissions, timestamps and ownership are restored where the Google Workspace API allows it.'):''}</p></div>`).join('')}
+        <div class="exnote">${m.note}</div>
+      </div><div>${illus(APPS[S.app].icon)}</div></div></div>`;
+    footer = `<div class="mfooter"><label class="ack"><input type="checkbox" class="cb" data-rw="skip" ${RW.skipIntro?'checked':''}>
+        Don't show this page again</label>
+      <div class="mfr"><button class="btn primary" data-rw="next">Next</button></div></div>`;
+    return rwPaint(mhd(m.title,false)+body+footer, wide);
+  }
+  if(RW.step===2){
+    const rows=rwRows();
+    const railHtml = RW.kind==='user' ? `
+      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Organizational Unit <span class="cr">▲</span></div>
+        <div class="frbody">${OUS.map(o=>`<label class="fropt"><input type="checkbox" class="cb" data-rw="ouf" data-v="${o}"
+          ${RW.ouF.has(o)?'checked':''}><span>${o}</span></label>`).join('')}</div></div>
+      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Status <span class="cr">▲</span></div>
+        <div class="frbody">${['Active','Relic'].map(s=>`<label class="fropt"><input type="radio" class="rd" name="rwst"
+          data-rw="status" data-v="${s}" ${RW.status===s?'checked':''}><span>${s}</span></label>`).join('')}</div></div>`
+      : RW.kind==='scale' ? `
+      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Scope <span class="cr">▲</span></div>
+        <div class="frbody">${[['all','All data'],['group','By group'],['ou','By organizational unit']].map(([v,l])=>
+          `<label class="fropt"><input type="radio" class="rd" name="rwsc" data-rw="scope" data-v="${v}"
+            ${RW.scope===v?'checked':''}><span>${l}</span></label>`).join('')}</div></div>`
+      : '';
+    const kindNow = RW.kind==='scale' ? (RW.scope==='group'?'group':RW.scope==='ou'?'ou':'user') : RW.kind;
+    const allData = RW.kind==='scale' && RW.scope==='all';
+    const table = allData
+      ? `<div class="optrow on" style="cursor:default"><input type="radio" class="rd" checked disabled>
+          <div><div class="ot">All ${APPS[S.app].name} data in ${ORG}</div>
+          <div class="od">${num(rwPool().length)} protected objects will be restored from their latest snapshots.</div></div></div>`
+      : `<div class="wlist"><table class="flat">
+        <thead><tr><th class="cbcell"><input type="checkbox" class="cb" data-rw="selall"
+            ${rows.length&&rows.every(o=>RW.sel.has(o.id))?'checked':''}></th>
+          <th>${KIND[kindNow]}</th>${kindNow==='ou'?'':'<th>Email</th>'}
+          ${kindNow==='user'?'<th>Status</th><th>Organizational Unit</th>':''}
+          <th>Selected Snapshot</th><th class="tac" style="width:52px">
+            <span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose which columns to display.">${ICON.cols}</span></th></tr></thead>
+        <tbody>${rows.map(o=>{
+          const snaps=snapList(o), cur=RW.rp[o.id]||snaps[0];
+          return `<tr class="${RW.sel.has(o.id)?'rowsel':''}" data-rw="row" data-id="${o.id}">
+            <td class="cbcell"><input type="checkbox" class="cb" data-rw="sel" data-id="${o.id}" ${RW.sel.has(o.id)?'checked':''}></td>
+            <td><div class="oname">${ICON[kindNow==='ou'?'ou':kindNow==='user'?'user':kindNow==='shared'?'shared':'group']}
+              <span class="nn">${o.name}</span></div></td>
+            ${kindNow==='ou'?'':`<td class="muted" title="${o.email}" style="max-width:220px">${o.email}</td>`}
+            ${kindNow==='user'?`<td>${o.status}</td><td>${o.ou}</td>`:''}
+            <td>${RW.changeRp
+              ? `<div class="sel"><select data-rw="rp" data-id="${o.id}">${snaps.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('')}</select></div>`
+              : cur||'—'}</td>
+            <td></td></tr>`;
+        }).join('')}</tbody></table></div>
+        ${rows.length?'':'<div class="empty">No objects match the current filters.</div>'}`;
+    body = `<div class="mbody"><h3>${m.step2}</h3>
+      <div class="wtop"><div class="lead">By default, the latest snapshots will be used to restore data.
+        <span class="inlinelink" data-rw="togglerp">${RW.changeRp?'Use latest snapshots':'Change recovery point'} ${ICON.chevsm}</span></div>
+        ${allData?'':`<div class="search sm"><span class="si">${ICON.searchi}</span>
+          <input placeholder="${m.ph}" value="${RW.q}" data-rw="q"></div>`}</div>
+      ${railHtml ? `<div class="wsplit"><div class="frail">${railHtml}</div><div>${table}</div></div>` : table}</div>`;
+    const n = allData ? rwPool().length : RW.sel.size;
+    footer = `<div class="mfooter"><div class="mfl">${n?`<b>${num(n)}</b> selected`:''}</div>
+      <div class="mfr"><button class="btn" data-rw="back">Back</button>
+        <button class="btn primary" data-rw="next" ${n?'':'disabled'}>Next</button></div></div>`;
+    return rwPaint(mhd(m.title,true)+stepper(2,tot)+body+footer, wide);
+  }
+  if(RW.step===3){
+    const pool = rwPool();
+    const locked = RW.kind==='scale';
+    body = `<div class="mbody"><h3>Select a Restore Location</h3>
+      <div class="lead">Choose where the restored data is written. ${locked?'Bulk restores always write back to the original location with the same path.':''}</div>
+      <div class="optrow ${RW.loc==='orig'?'on':''}" data-rw="loc" data-v="orig">
+        <input type="radio" class="rd" name="rwloc" ${RW.loc==='orig'?'checked':''}>
+        <div><div class="ot">${RW.m.locOrig}</div>
+          <div class="od">Data is restored to the same ${RW.kind==='shared'?'shared drive':RW.kind==='group'?'group':'account'} it was backed up from.</div></div></div>
+      <div class="optrow ${RW.loc==='other'?'on':''} ${locked?'off':''}" ${locked?'':'data-rw="loc" data-v="other"'}>
+        <input type="radio" class="rd" name="rwloc" ${RW.loc==='other'?'checked':''} ${locked?'disabled':''}>
+        <div><div class="ot">${RW.m.locOther}</div>
+          <div class="od">${locked?'Not available for bulk restore.':'Pick the target below. The original data is left untouched.'}</div></div></div>
+      ${RW.loc==='other'&&!locked?`<div class="optsub"><label>Target</label>
+        <select data-rw="loctarget">${pool.map(o=>`<option ${RW.locTarget===o.id?'selected':''} value="${o.id}">${o.name}${o.email&&o.email!=='—'?' — '+o.email:''}</option>`).join('')}</select></div>`:''}</div>`;
+    footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
+      <button class="btn" data-rw="back">Back</button><button class="btn primary" data-rw="next">Next</button></div></div>`;
+    return rwPaint(mhd(RW.m.title,true)+stepper(3,tot)+body+footer, wide);
+  }
+  // step 4
+  const isGroup = RW.kind==='group';
+  const opts = isGroup
+    ? [['inplace','Replace existing membership','The snapshot membership and settings overwrite what is currently in Google Workspace.'],
+       ['merge','Merge with existing membership','Members from the snapshot are added; current members are kept.']]
+    : [['inplace','Restore in-place','Files and folders are restored to their original path. Existing items with the same name are versioned.'],
+       ['folder','Restore to a new folder','Everything is restored into a single new folder, leaving current data untouched.']];
+  body = `<div class="mbody"><h3>Select Restore Options</h3>
+    <div class="lead">Choose how the restored data is written into ${APPS[S.app].name}.</div>
+    ${opts.map(([v,t,d])=>`<div class="optrow ${RW.opt===v?'on':''}" data-rw="opt" data-v="${v}">
+      <input type="radio" class="rd" name="rwopt" ${RW.opt===v?'checked':''}>
+      <div><div class="ot">${t}</div><div class="od">${d}</div></div></div>`).join('')}
+    ${RW.opt==='folder'?`<div class="optsub"><label>Folder name</label>
+      <input data-rw="folder" value="${RW.folder}"></div>`:''}</div>`;
+  const n = (RW.kind==='scale'&&RW.scope==='all') ? rwPool().length : RW.sel.size;
+  footer = `<div class="mfooter"><div class="mfl"><b>${num(n)}</b> ${KINDS[RW.kind==='scale'?'user':RW.kind]} · GCP region ${REGION}</div>
+    <div class="mfr"><button class="btn" data-rw="back">Back</button>
+      <button class="btn primary" data-rw="finish">Restore</button></div></div>`;
+  rwPaint(mhd(RW.m.title,true)+stepper(4,tot)+body+footer, wide);
+}
+function rwPaint(html,wide){
+  openModal(html,!wide);
+  md.querySelectorAll('[data-rw]').forEach(el=>{
+    const a = el.dataset.rw;
+    if(a==='q'){ el.addEventListener('input',()=>{ RW.q=el.value; rwRender(); }); return; }
+    if(a==='folder'){ el.addEventListener('input',()=>{ RW.folder=el.value; }); return; }
+    if(a==='rp'){ el.addEventListener('change',()=>{ RW.rp[el.dataset.id]=el.value; }); return; }
+    if(a==='loctarget'){ el.addEventListener('change',()=>{ RW.locTarget=el.value; }); return; }
+    el.addEventListener('click', e=>{
+      switch(a){
+        case 'skip': RW.skipIntro=el.checked; return;
+        case 'next': RW.step++; if(RW.step===3&&!RW.locTarget) RW.locTarget=rwPool()[0]&&rwPool()[0].id; break;
+        case 'back': RW.step--; break;
+        case 'togglerp': RW.changeRp=!RW.changeRp; break;
+        case 'ouf': el.checked?RW.ouF.add(el.dataset.v):RW.ouF.delete(el.dataset.v); RW.sel=new Set(); break;
+        case 'status': RW.status=el.dataset.v; RW.sel=new Set(); break;
+        case 'scope': RW.scope=el.dataset.v; RW.sel=new Set(); break;
+        case 'sel': e.stopPropagation(); RW.sel.has(el.dataset.id)?RW.sel.delete(el.dataset.id):RW.sel.add(el.dataset.id); break;
+        case 'row': {
+          if(e.target.closest('select')||e.target.closest('[data-rw="sel"]')) return;
+          const id=el.dataset.id; RW.sel.has(id)?RW.sel.delete(id):RW.sel.add(id); break;
+        }
+        case 'selall': {
+          const rows=rwRows(); const all=rows.every(o=>RW.sel.has(o.id));
+          rows.forEach(o=> all?RW.sel.delete(o.id):RW.sel.add(o.id)); break;
+        }
+        case 'loc': RW.loc=el.dataset.v; break;
+        case 'opt': RW.opt=el.dataset.v; break;
+        case 'finish': {
+          const n=(RW.kind==='scale'&&RW.scope==='all')?rwPool().length:RW.sel.size;
+          const where = RW.loc==='orig' ? 'the original location'
+            : (byId(RW.locTarget)||{name:'the selected target'}).name;
+          closeModal();
+          toast('Restore started',
+            `${num(n)} ${KINDS[RW.kind==='scale'?'user':RW.kind]} queued for restore to ${where}. Track progress under Events → Recovery.`,'info');
+          return;
+        }
+      }
+      rwRender();
+    });
+  });
+}
+
+/* ===========================================================================
+   Group restore wizard — the four recovery scenarios:
+     full group deletion · membership bulk-removal · settings misconfiguration
+     · role corruption (covered by the membership scope, which restores roles)
+   =========================================================================== */
+const SCOPES = [
+  {v:'full', t:'Full group',
+   d:'Recreate the entire group from the selected snapshot — metadata, settings, aliases and the complete membership list. Use this when a group was deleted.'},
+  {v:'membership', t:'Membership list',
+   d:"Restore the membership list only, leaving the group email address and settings unchanged. Each member's email address, role and member type are restored."},
+  {v:'settings', t:'Group settings',
+   d:'Restore group settings only — posting permissions, conversation history access and external membership permissions — without touching the membership.'},
+  {v:'metadata', t:'Group metadata',
+   d:'Restore group metadata only — name, description, primary email address, email aliases and group type.'}
+];
+const SCOPE_T = v => (SCOPES.find(s=>s.v===v)||{}).t;
+
+const pad2 = n => String(n).padStart(2,'0');
+const h12  = d => `${d.getHours()%12||12}:${pad2(d.getMinutes())} ${d.getHours()<12?'AM':'PM'}`;
+const fmtPill = d => `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()} at ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const fmtSnap = d => `${MONS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}, ${h12(d)}`;
+/* deterministic snapshot history for an object, newest first */
+function snapsOf(o){
+  const seed = o.name.length*7 + o.email.charCodeAt(0);
+  return Array.from({length:40},(_,i)=>{
+    const d = new Date(NOW.getTime() - i*864e5);
+    d.setHours(12 + ((seed+i)%3), (seed*7 + i*13)%60, 0, 0);
+    return d;
+  });
+}
+const RANGES = [['1','Past 24 hours'],['7','Past 7 days'],['30','Past 30 days'],['365','Past 12 months'],['custom','Custom']];
+/* groups that hold other groups as members — surfaced in the wizard so the
+   admin can restore or skip those nested memberships */
+const NESTED = {
+  'All Employees':['Engineering','Sales','Marketing','Support'],
+  'Engineering':['Product','Security'],
+  'Support':['Interns']
+};
+const TODAY = '2026-08-19 10:28';
+
+const GW = {on:false};
+function openGroupRestore(){
+  Object.assign(GW, {on:true, step:1, scope:'full', gid:null, snap:0, q:'',
+    typeF:new Set(), status:'Active',
+    loc:'orig', origMode:'merge', diffMode:'existing', targetId:null,
+    newName:'', newEmail:'', noRoles:false,
+    nest:'restore', nestSkip:new Set(),
+    range:'7', from:'2026-08-12', to:'2026-08-19', tmpSnap:0});
+  gwRender();
+}
+const gwGroups = () => listFor('settings','group').filter(o=>o.protected);
+function gwRows(){
+  const q = GW.q.trim().toLowerCase();
+  return gwGroups().filter(o=>{
+    if(q && !(o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q))) return false;
+    if(GW.typeF.size && !GW.typeF.has(o.gtype)) return false;
+    if(o.status !== GW.status) return false;
+    return true;
+  });
+}
+const gwGroup = () => byId(GW.gid);
+
+function gwRender(){
+  const T=4;
+  if(GW.step===1){
+    const body = `<div class="mbody"><h3>Select the Restore Scope</h3>
+      <div class="lead">Select what data you want to restore.</div>
+      <div class="scopelist">${SCOPES.map(s=>`
+        <div class="scopecard ${GW.scope===s.v?'on':''}" data-gw="scope" data-v="${s.v}">
+          <input type="radio" class="rd" name="gwscope" ${GW.scope===s.v?'checked':''}>
+          <div><div class="sct">${s.t}</div><div class="scd">${s.d}</div></div>
+        </div>`).join('')}</div></div>`;
+    const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
+      <button class="btn" data-gw="cancel">Back</button>
+      <button class="btn primary" data-gw="next">Next</button></div></div>`;
+    return gwPaint(mhd('Restore a Group',false)+stepper(1,T)+body+footer);
+  }
+
+  if(GW.step===2){
+    const rows = gwRows();
+    const rail = `
+      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Group Type <span class="cr">▲</span></div>
+        <div class="frbody">${GTYPE.map(t=>`<label class="fropt"><input type="checkbox" class="cb" data-gw="typef" data-v="${t}"
+          ${GW.typeF.has(t)?'checked':''}><span>${t}</span></label>`).join('')}</div></div>
+      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Status <span class="cr">▲</span></div>
+        <div class="frbody">${['Active','Relic'].map(s=>`<label class="fropt"><input type="radio" class="rd" name="gwst"
+          data-gw="status" data-v="${s}" ${GW.status===s?'checked':''}><span>${s}</span></label>`).join('')}</div></div>`;
+    /* Group Type is a filter facet on the left rather than a column, so the
+       snapshot pill always has room in the fixed-width dialog. */
+    const table = `<div class="wlist"><table class="flat">
+      <thead><tr><th class="cbcell"></th><th>Group</th><th>Email</th><th class="tac">Members</th>
+        <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings"
+          data-msg="Choose which columns to display.">${ICON.cols}</span></th></tr></thead>
+      <tbody>${rows.map(o=>{
+        const on = GW.gid===o.id, snaps=snapsOf(o), d=snaps[on?GW.snap:0];
+        return `<tr class="${on?'rowsel':''}" data-gw="pickgroup" data-id="${o.id}">
+          <td class="cbcell"><input type="radio" class="rd" name="gwgrp" ${on?'checked':''}></td>
+          <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
+          <td class="muted" title="${o.email}" style="max-width:230px">${o.email}</td>
+          <td class="tac">${num(o.members)}</td>
+          <td class="snapcell">${on?`<span class="snappill" data-gw="chgsnap">${fmtPill(d)}${GW.snap===0?' (latest snapshot)':''}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/></svg></span>`:''}</td>
+        </tr>`;
+      }).join('')}</tbody></table>
+      ${rows.length?'':'<div class="empty">No groups match the current filters.</div>'}</div>`;
+    const body = `<div class="mbody fill"><h3>Select a Group and Snapshot</h3>
+      <div class="wtop"><div class="lead">By default, the latest snapshot will be used to restore the group.</div>
+        <div class="search sm"><span class="si">${ICON.searchi}</span>
+          <input placeholder="Search by group name" value="${GW.q}" data-gw="q"></div></div>
+      <div class="wsplit"><div class="frail">${rail}</div><div>${table}</div></div></div>`;
+    const footer = `<div class="mfooter">
+      <div class="mfl">${GW.gid?`<span style="color:var(--accent);font-weight:600">1 item selected</span>`:''}</div>
+      <div class="mfr"><button class="btn" data-gw="back">Back</button>
+        <button class="btn primary" data-gw="next" ${GW.gid?'':'disabled'}>Next</button></div></div>`;
+    return gwPaint(mhd('Restore a Group',true)+stepper(2,T)+body+footer);
+  }
+
+  if(GW.step===3){
+    const g = gwGroup();
+    const membershipy = GW.scope==='full' || GW.scope==='membership';
+    const origSub = membershipy ? `<div class="locsub">
+        ${[['merge','Merge with existing membership','Members from the snapshot are added. Members added since the snapshot are kept.'],
+           ['overwrite','Overwrite existing membership with data from snapshot','The live membership is replaced by the snapshot membership.'],
+           ['nodupe',"Don't restore duplicate members",'Members that already exist in the group are skipped.']]
+          .map(([v,t,d])=>`<label class="subopt" data-gw="origmode" data-v="${v}">
+            <input type="radio" class="rd" name="gworig" ${GW.origMode===v?'checked':''}>
+            <div><div class="st2">${t}</div><div class="sd2">${d}</div></div></label>`).join('')}
+      </div>` : '';
+    const diffSub = `<div class="locsub">
+        <label class="subopt" data-gw="diffmode" data-v="existing">
+          <input type="radio" class="rd" name="gwdiff" ${GW.diffMode==='existing'?'checked':''}>
+          <div><div class="st2">Select an existing group</div></div></label>
+        ${GW.diffMode==='existing'?`<div class="locfield"><label>Group</label>
+          <select data-gw="target"><option value="">Select a group</option>
+            ${gwGroups().filter(o=>o.id!==GW.gid).map(o=>`<option value="${o.id}" ${GW.targetId===o.id?'selected':''}>${o.name} — ${o.email}</option>`).join('')}
+          </select></div>`:''}
+        <label class="subopt" data-gw="diffmode" data-v="new">
+          <input type="radio" class="rd" name="gwdiff" ${GW.diffMode==='new'?'checked':''}>
+          <div><div class="st2">Create a new group</div></div></label>
+        ${GW.diffMode==='new'?`<div class="locfield"><label>New Group Name</label>
+            <input data-gw="newname" value="${GW.newName||g.name+' (restored)'}"></div>
+          <div class="locfield"><label>New Group Email</label>
+            <input data-gw="newemail" value="${GW.newEmail||g.email.replace('@','-restored@')}"></div>`:''}
+      </div>`;
+    const origDesc = GW.scope==='full'
+      ? 'Data will be restored to the original group. If the group no longer exists, it is recreated with the same email address and aliases.'
+      : 'Data will be restored to the original group. If the original group was deleted, restore will fail.';
+    const body = `<div class="mbody"><h3>Select a Restore Location</h3>
+      <div class="lead">Choose where you want to restore ${SCOPE_T(GW.scope).toLowerCase()} data of <b>${g.name}</b>.</div>
+      <div class="locopt" data-gw="loc" data-v="orig">
+        <input type="radio" class="rd" name="gwloc" ${GW.loc==='orig'?'checked':''}>
+        <div style="flex:1"><div class="lt">Restore to the original group</div>
+          <div class="ld">${origDesc}</div>
+          ${GW.loc==='orig'?origSub:''}</div></div>
+      <div class="locopt" data-gw="loc" data-v="diff">
+        <input type="radio" class="rd" name="gwloc" ${GW.loc==='diff'?'checked':''}>
+        <div style="flex:1"><div class="lt">Restore to a different group</div>
+          <div class="ld">Data will be restored into another group, leaving the original group untouched.</div>
+          ${GW.loc==='diff'?diffSub:''}</div></div>
+      ${nestedBlock(g)}
+      <div class="locrule"></div>
+      <label class="ack"><input type="checkbox" class="cb" data-gw="noroles" ${GW.noRoles?'checked':''}>
+        Don't restore member roles ${info('Members are restored as MEMBER. Owner and manager roles from the snapshot are not reapplied.')}</label>
+      </div>`;
+    const ready = GW.loc==='orig' || (GW.diffMode==='new') || (GW.diffMode==='existing' && GW.targetId);
+    const footer = `<div class="mfooter hasnote">
+      <div class="mfnote"><span class="bi">${ICON.info}</span>
+        <div>When restoring to a different group, only group metadata and membership are restored.
+          Member roles are restored unless you check the 'Don't restore member roles' option.</div></div>
+      <div class="mfr"><button class="btn" data-gw="back">Back</button>
+        <button class="btn primary" data-gw="next" ${ready?'':'disabled'}>Next</button></div></div>`;
+    return gwPaint(mhd('Restore a Group',true)+stepper(3,T)+body+footer);
+  }
+
+  // step 4 — confirmation
+  const g = gwGroup(), d = snapsOf(g)[GW.snap];
+  let locLine, locSub='';
+  if(GW.loc==='orig'){
+    locLine = 'Restore to the original group';
+    if(GW.scope==='full'||GW.scope==='membership')
+      locSub = {merge:'Merge with existing membership',
+                overwrite:'Overwrite existing membership with data from snapshot',
+                nodupe:"Don't restore duplicate members"}[GW.origMode];
+  } else if(GW.diffMode==='existing'){
+    locLine = 'Restore to a different group';
+    locSub = 'Target group: ' + (byId(GW.targetId)||{name:'—'}).name;
+  } else {
+    locLine = 'Restore to a different group';
+    locSub = 'New group: ' + (GW.newName||g.name+' (restored)') + ' — ' + (GW.newEmail||g.email.replace('@','-restored@'));
+  }
+  if(GW.noRoles) locSub += (locSub?' · ':'') + 'Member roles are not restored';
+  const kids = nestedOf(g), showNest = kids.length && (GW.scope==='full'||GW.scope==='membership');
+  const keep = kids.filter(k=>!GW.nestSkip.has(k));
+  const nestRow = !showNest ? '' : `<div class="sumrow"><div class="sk">Nested Groups</div><div class="sv">${
+    GW.nest==='skip' ? 'Skipped'
+      : keep.length ? `${keep.length} of ${kids.length} restored<div class="sub">${keep.join(', ')}</div>`
+      : 'None selected'}</div></div>`;
+  const body = `<div class="mbody"><h3>Confirmation</h3>
+    <h4 style="font-size:19px;font-weight:800;margin-bottom:24px">Restore Summary</h4>
+    <div class="sumrow"><div class="sk">Recovery Scope</div><div class="sv">${SCOPE_T(GW.scope)}</div></div>
+    <div class="sumrow"><div class="sk">Group</div><div class="sv">${g.name}<div class="sub">${g.email}</div></div></div>
+    <div class="sumrow"><div class="sk">Snapshot</div><div class="sv">${fmtSnap(d)}</div></div>
+    <div class="sumrow"><div class="sk">Restore Location</div>
+      <div class="sv">${locLine}${locSub?`<div class="sub">${locSub}</div>`:''}</div></div>
+    ${nestRow}</div>`;
+  const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
+    <button class="btn" data-gw="back">Back</button>
+    <button class="btn primary" data-gw="finish">Restore</button></div></div>`;
+  gwPaint(mhd('Restore a Group',false)+stepper(4,T)+body+footer);
+}
+
+/* nested groups: only meaningful when membership is part of the restore */
+const nestedOf = g => (NESTED[g.name]||[]);
+function nestedBlock(g){
+  const kids = nestedOf(g);
+  if(!kids.length || !(GW.scope==='full' || GW.scope==='membership')) return '';
+  return `<div class="nestbox">
+    <div class="nesthd">Nested Group Memberships</div>
+    <div class="nestsub"><b>${g.name}</b> contains ${kids.length} ${kids.length===1?'group':'groups'} as members in this
+      snapshot. Choose whether those memberships are restored along with the individual members.</div>
+    <label class="subopt" data-gw="nest" data-v="restore">
+      <input type="radio" class="rd" name="gwnest" ${GW.nest==='restore'?'checked':''}>
+      <div><div class="st2">Restore nested group memberships</div>
+        <div class="sd2">Member groups are re-added exactly as they appear in the snapshot.</div></div></label>
+    ${GW.nest==='restore'?`<div class="nestlist">${kids.map(k=>`
+      <label class="nestrow"><input type="checkbox" class="cb" data-gw="nestskip" data-v="${k}"
+        ${GW.nestSkip.has(k)?'':'checked'}>${ICON.group}<span>${k}</span></label>`).join('')}</div>`:''}
+    <label class="subopt" data-gw="nest" data-v="skip">
+      <input type="radio" class="rd" name="gwnest" ${GW.nest==='skip'?'checked':''}>
+      <div><div class="st2">Skip nested group memberships</div>
+        <div class="sd2">Only individual members are restored. Member groups are left as they are today.</div></div></label>
+  </div>`;
+}
+
+function gwPaint(html){
+  openModal(html);
+  md.className='modal gw';
+  md.querySelectorAll('[data-gw]').forEach(el=>{
+    const a = el.dataset.gw;
+    if(a==='q'){ el.addEventListener('input',()=>{ GW.q=el.value; gwRender(); }); return; }
+    if(a==='newname'){ el.addEventListener('input',()=>{ GW.newName=el.value; }); return; }
+    if(a==='newemail'){ el.addEventListener('input',()=>{ GW.newEmail=el.value; }); return; }
+    if(a==='target'){ el.addEventListener('change',()=>{ GW.targetId=el.value||null; gwRender(); }); return; }
+    el.addEventListener('click', e=>{
+      switch(a){
+        case 'scope': GW.scope=el.dataset.v; break;
+        case 'typef': el.checked?GW.typeF.add(el.dataset.v):GW.typeF.delete(el.dataset.v); break;
+        case 'status': GW.status=el.dataset.v; break;
+        case 'pickgroup': {
+          if(e.target.closest('[data-gw="chgsnap"]')) return;
+          if(GW.gid!==el.dataset.id){ GW.gid=el.dataset.id; GW.snap=0; GW.targetId=null; }
+          break;
+        }
+        case 'chgsnap': e.stopPropagation(); GW.tmpSnap=GW.snap; snapPicker(); return;
+        case 'loc': if(e.target.closest('.locsub')) return;   // nested controls handle themselves
+                    GW.loc=el.dataset.v; break;
+        case 'origmode': GW.origMode=el.dataset.v; break;
+        case 'diffmode': GW.diffMode=el.dataset.v; break;
+        case 'nest': GW.nest=el.dataset.v; break;
+        case 'nestskip': el.checked?GW.nestSkip.delete(el.dataset.v):GW.nestSkip.add(el.dataset.v); return;
+        case 'noroles': GW.noRoles=el.checked; return;   // no re-render: keeps focus
+        case 'back': GW.step--; break;
+        case 'cancel': closeModal(); return;
+        case 'next': GW.step++; break;
+        case 'finish': {
+          const g=gwGroup(), d=snapsOf(g)[GW.snap];
+          const where = GW.loc==='orig' ? 'the original group'
+            : GW.diffMode==='existing' ? (byId(GW.targetId)||{name:'the selected group'}).name
+            : (GW.newName||g.name+' (restored)');
+          closeModal();
+          toast('Restore started',
+            `${SCOPE_T(GW.scope)} of ${g.name} from ${fmtSnap(d)} is being restored to ${where}. Track progress under Events → Recovery.`,'info');
+          return;
+        }
+      }
+      gwRender();
+    });
+  });
+}
+
+/* change-snapshot panel (right-side drawer, over the wizard) */
+function snapPicker(){
+  const g = gwGroup();
+  const paint = () => {
+    const all = snapsOf(g);
+    let list;
+    if(GW.range==='custom'){
+      const f=new Date(GW.from+'T00:00:00'), t=new Date(GW.to+'T23:59:59');
+      list = all.map((d,i)=>[d,i]).filter(([d])=>d>=f && d<=t);
+    } else {
+      const days=parseInt(GW.range,10);
+      list = all.map((d,i)=>[d,i]).filter(([d])=>(NOW-d) <= days*864e5);
+    }
+    openDrawer(`${mhd('Change Snapshot for '+g.name,false)}
+      <div class="mbody">
+        <div class="lead" style="margin-bottom:26px">Select the snapshot you want to use to restore data from the group ${g.name}.</div>
+        <div class="snapgrid">
+          <div class="frail"><div class="frgroup">
+            <div class="frhd" data-act="fr-toggle">Time Range <span class="cr">▲</span></div>
+            <div class="frbody">${RANGES.map(([v,l])=>`<label class="fropt"><input type="radio" class="rd" name="gwrange"
+              data-sp="range" data-v="${v}" ${GW.range===v?'checked':''}><span>${l}</span></label>`).join('')}
+              ${GW.range==='custom'?`<div class="customdates">
+                <input type="date" data-sp="from" value="${GW.from}"><input type="date" data-sp="to" value="${GW.to}"></div>`:''}
+            </div></div></div>
+          <div>
+            <div class="snaphd">Snapshot Date and Time</div>
+            <div class="snapscroll">${list.map(([d,i])=>`
+              <div class="snaprow ${GW.tmpSnap===i?'on':''}" data-sp="pick" data-i="${i}">
+                <input type="radio" class="rd" name="gwsnap" ${GW.tmpSnap===i?'checked':''}>
+                <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M3 7.8h3.6l1.5-2.4h7.8l1.5 2.4H21v11H3z"/><circle cx="12" cy="13" r="3.4"/></svg>
+                <span>${fmtSnap(d)}</span></div>`).join('')}
+              ${list.length?'':'<div class="empty">No snapshots in this time range.</div>'}</div>
+          </div></div></div>
+      <div class="mfooter"><div class="mfl"></div><div class="mfr">
+        <button class="btn" data-sp="cancel">Cancel</button>
+        <button class="btn primary" data-sp="save">Save</button></div></div>`);
+    dr.querySelectorAll('[data-sp]').forEach(el=>{
+      const a=el.dataset.sp;
+      if(a==='from'||a==='to'){ el.addEventListener('change',()=>{ GW[a]=el.value; paint(); }); return; }
+      el.addEventListener('click',()=>{
+        if(a==='range'){ GW.range=el.dataset.v; paint(); }
+        else if(a==='pick'){ GW.tmpSnap=+el.dataset.i; paint(); }
+        else if(a==='cancel'){ closeDrawer(); }
+        else if(a==='save'){ GW.snap=GW.tmpSnap; closeDrawer(); gwRender(); }
+      });
+    });
+  };
+  paint();
+}
+
+/* ===========================================================================
+   Manage Protection wizard
+   =========================================================================== */
+const MP = {on:false};
+function openProtect(ids){
+  const objs = ids.map(byId).filter(Boolean);
+  Object.assign(MP, {on:true, ids, objs, step:1, choice:objs[0]&&objs[0].sla||null, mode:'sla', q:''});
+  mpRender();
+}
+function mpTarget(){
+  return MP.objs.length===1 ? MP.objs[0].name : `${num(MP.objs.length)} selected objects`;
+}
+function mpRender(){
+  if(MP.step===1){
+    const q=MP.q.trim().toLowerCase();
+    const rows=WS_SLA.filter(s=>!q||s.name.toLowerCase().includes(q));
+    const body = `<div class="mbody"><h3>Assign an SLA Domain</h3>
+      <div class="lead" style="margin-bottom:20px">Assign an SLA Domain to <b>${mpTarget()}</b>.</div>
+      <div class="wtop" style="align-items:center;margin-bottom:18px">
+        <div class="objtype" style="flex:1">Object Type: <b>Google Workspace</b> <span style="font-size:10px;color:var(--text-weak)">▾</span></div>
+        <button class="plusbtn" data-mp="new-sla" title="Create SLA Domain">＋</button>
+        <div class="search sm"><span class="si">${ICON.searchi}</span>
+          <input placeholder="Search by SLA Domain" value="${MP.q}" data-mp="q"></div></div>
+      <table class="flat"><thead><tr><th class="cbcell"></th><th>SLA Domain</th><th>Deployment Model</th>
+        <th>Creator Org</th><th>Base Frequency</th><th>Maximum Rete…</th></tr></thead>
+        <tbody>${rows.map(s=>`<tr class="${MP.mode==='sla'&&MP.choice===s.name?'rowsel':''}" data-mp="pick" data-v="${s.name}">
+          <td class="cbcell"><input type="radio" class="rd" name="mpsla" ${MP.mode==='sla'&&MP.choice===s.name?'checked':''}></td>
+          <td><div class="oname">${ICON.shield}<span class="nn">${s.name}</span></div></td>
+          <td>${s.model}</td><td title="${s.org}" style="max-width:150px">${s.org}</td><td>${s.freq}</td><td>${s.ret}</td></tr>`).join('')}
+        </tbody></table>
+      ${rows.length?'':'<div class="empty">No SLA Domains match the search.</div>'}
+      <div class="slabottom">
+        <div class="optrow ${MP.mode==='none'?'on':''}" data-mp="mode" data-v="none">
+          <input type="radio" class="rd" name="mpsla" ${MP.mode==='none'?'checked':''}>${ICON.noprot}
+          <div><span class="ot">Don't Protect.</span><span class="od">Selected object won't be protected until you directly change their SLA Domain assignment.</span></div></div>
+        <div class="optrow ${MP.mode==='clear'?'on':''}" data-mp="mode" data-v="clear">
+          <input type="radio" class="rd" name="mpsla" ${MP.mode==='clear'?'checked':''}>${ICON.clearsla}
+          <div><span class="ot">Clear current SLA Domain.</span><span class="od">Selected object will inherit the SLA Domain of the parent object, if applicable.</span></div></div>
+      </div></div>`;
+    const ready = MP.mode!=='sla' || !!MP.choice;
+    const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
+      <button class="btn primary" data-mp="next" ${ready?'':'disabled'}>Next</button></div></div>`;
+    return mpPaint(mhd('Manage Protection',true)+stepper(1,2)+body+footer);
+  }
+  const s = MP.mode==='sla' ? slaOf(MP.choice) : null;
+  const headline = MP.mode==='sla' ? MP.choice : MP.mode==='none' ? "Don't Protect" : 'Clear current SLA Domain';
+  const body = `<div class="mbody confirm"><h3>Confirmation</h3>
+    <div class="cline"><b>SLA Domain:</b> ${headline}</div>
+    <div class="cline">${MP.mode==='sla'?'The SLA Domain will be applied to':MP.mode==='none'
+      ?'Protection will be removed from':'The SLA Domain assignment will be cleared for'} <b>${mpTarget()}</b></div>
+    ${MP.mode==='sla'?`<div class="crule"></div><h4>Frequency and Retention</h4>
+      <div class="cgrid"><div><div class="ck">Take every</div><div class="cv">${s.freq}</div></div>
+        <div><div class="ck">Retain for</div><div class="cv">${s.retLabel}</div></div></div>`
+      :`<div class="crule"></div><div class="lead">${MP.mode==='none'
+        ? 'Existing snapshots are retained and remain available for restore. No new snapshots will be taken.'
+        : 'The object inherits the SLA Domain of its parent, if one is assigned.'}</div>`}</div>`;
+  const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
+    <button class="btn" data-mp="back">Back</button><button class="btn primary" data-mp="assign">Assign</button></div></div>`;
+  mpPaint(mhd('Manage Protection',false)+stepper(2,2)+body+footer);
+}
+function mpPaint(html){
+  openModal(html);
+  md.querySelectorAll('[data-mp]').forEach(el=>{
+    const a=el.dataset.mp;
+    if(a==='q'){ el.addEventListener('input',()=>{ MP.q=el.value; mpRender(); }); return; }
+    el.addEventListener('click',()=>{
+      switch(a){
+        case 'pick': MP.mode='sla'; MP.choice=el.dataset.v; break;
+        case 'mode': MP.mode=el.dataset.v; break;
+        case 'next': MP.step=2; break;
+        case 'back': MP.step=1; break;
+        case 'new-sla': toast('Create SLA Domain','Opening the SLA Domain creation wizard for object type Google Workspace.','info'); return;
+        case 'assign': {
+          const parentSla = APPS[S.app].sla;
+          MP.objs.forEach(o=>{
+            if(MP.mode==='sla'){ o.sla=MP.choice; o.assignment='Direct'; o.protected=true; if(!o.snaps) o.snaps=1; }
+            else if(MP.mode==='none'){ o.sla=null; o.assignment='Direct'; o.protected=false; }
+            else { o.sla=parentSla; o.assignment='Derived'; o.protected=true; if(!o.snaps) o.snaps=1; }
+          });
+          const n=MP.objs.length;
+          closeModal(); S.sel=new Set();
+          toast('Protection updated', MP.mode==='sla'
+            ? `${num(n)} object${n>1?'s':''} assigned to SLA Domain ${MP.choice}.`
+            : MP.mode==='none' ? `${num(n)} object${n>1?'s':''} set to Don't Protect. Existing snapshots are retained.`
+            : `SLA Domain cleared on ${num(n)} object${n>1?'s':''}. They now inherit ${parentSla}.`);
+          render(); return;
+        }
+      }
+      mpRender();
+    });
+  });
+}
+
+/* ===========================================================================
+   Delegated events (page level)
+   =========================================================================== */
+document.addEventListener('click', e=>{
+  const el=e.target.closest('[data-act]');
+  if(!el){ closeMenu(); return; }
+  const act=el.dataset.act, keepMenu=['menu-kebab','menu-protect-org','row-menu'].includes(act);
+  switch(act){
+    case 'apps': toast('Apps','Returning to the Apps inventory for all SaaS applications.','info'); break;
+    case 'org': go('org'); break;
+    case 'open-app': go('app',{app:el.dataset.app,tab:'restore'}); break;
+    case 'tab': go('app',{app:S.app,tab:el.dataset.tab}); break;
+    case 'sub': go('app',{app:S.app,tab:'protect',sub:el.dataset.sub}); break;
+    // groups use their own 4-step wizard; Drive/Gmail keep the generic one
+    case 'restore': el.dataset.kind==='group' ? openGroupRestore() : openRestore(el.dataset.kind); break;
+
+    case 'sort': { const c=el.dataset.col; S.sort={col:c,dir:S.sort.col===c?-S.sort.dir:1}; render(); break; }
+    case 'sel': { e.stopPropagation(); const id=el.dataset.id; S.sel.has(id)?S.sel.delete(id):S.sel.add(id); render(); break; }
+    case 'row': {
+      if(e.target.closest('[data-act="sel"]')||e.target.closest('[data-act="row-menu"]')) return;
+      const id=el.dataset.id; S.sel.has(id)?S.sel.delete(id):S.sel.add(id); render(); break;
+    }
+    case 'sel-all': {
+      e.stopPropagation();
+      const rows=filterRows(listFor(S.app,S.sub)); const all=rows.every(o=>S.sel.has(o.id));
+      rows.forEach(o=> all?S.sel.delete(o.id):S.sel.add(o.id)); render(); break;
+    }
+    case 'clear-sel': S.sel=new Set(); render(); break;
+    case 'slaf': { const v=el.dataset.v; S.slaFilter.has(v)?S.slaFilter.delete(v):S.slaFilter.add(v); render(); break; }
+    case 'clear-slaf': S.slaFilter=new Set(); render(); break;
+    case 'fr-toggle': el.closest('.frgroup').classList.toggle('collapsed'); break;
+
+    case 'mp-open': if(S.sel.size) openProtect([...S.sel]); break;
+    case 'row-menu': {
+      const o=byId(el.dataset.id);
+      openMenu(el, `<div class="mh">${o.name}</div>
+        <div class="mi" data-act="mp-one" data-id="${o.id}">Manage Protection</div>
+        <div class="mi" data-act="snap-one" data-id="${o.id}">Take On-Demand Snapshot</div>
+        <div class="sepline"></div>
+        <div class="mi" data-act="toast" data-title="Object ID copied" data-msg="${o.natId}">Copy ${KIND[o.kind]} ID</div>`);
+      break;
+    }
+    case 'mp-one': closeMenu(); openProtect([el.dataset.id]); break;
+    case 'snap-one': { closeMenu(); const o=byId(el.dataset.id);
+      toast('Snapshot started',`On-demand backup queued for ${o.name}.`,'info'); break; }
+
+    case 'menu-kebab':
+      openMenu(el, `<div class="mi" data-act="toast" data-title="Edit organization" data-msg="Opening organization settings for ${ORG}.">Edit Organization</div>
+        <div class="mi" data-act="toast" data-title="Refresh" data-msg="Refreshing the Google Workspace hierarchy for ${DOMAIN}.">Refresh Hierarchy</div>
+        <div class="mi" data-act="toast" data-title="Storage regions" data-msg="Google Workspace backups are stored in GCP region ${REGION}.">Storage Regions</div>
+        <div class="sepline"></div><div class="mi dis">Remove Organization</div>`);
+      break;
+    case 'menu-protect-org':
+      openMenu(el, `<div class="mh">All Workspace apps</div>
+        ${Object.keys(APPS).map(k=>FLOWS[k].protect
+          ? `<div class="mi" data-act="goto-protect" data-app="${k}">${APPS[k].name.split(',')[0]}</div>`
+          : `<div class="mi" data-act="toast" data-title="Manage Protection"
+               data-msg="SLA Domain assignment for ${APPS[k].name} is not part of this prototype round.">${APPS[k].name.split(',')[0]}</div>`
+        ).join('')}`);
+      break;
+    case 'goto-protect': closeMenu(); go('app',{app:el.dataset.app,tab:'protect'}); break;
+    case 'snap-org': openModal(`${mhd('Take On-Demand Snapshot',false)}
+      <div class="mbody"><h3 style="font-size:21px">Snapshot all Workspace apps</h3>
+        <div class="lead">An on-demand snapshot of every protected object in <b>${ORG}</b> will be taken immediately, using the
+          retention of each object's SLA Domain.</div>
+        <div class="optrow on" style="cursor:default"><input type="radio" class="rd" checked disabled>
+          <div><div class="ot">${num(Object.keys(APPS).reduce((s,k)=>s+APPS[k].cardRows.flatMap(([kk])=>cardList(k,kk)).filter(o=>o.protected).length,0))} protected objects</div>
+          <div class="od">Google Drive, Gmail Calendar and Contacts, and Workspace Settings.</div></div></div></div>
+      <div class="mfooter"><div class="mfl">Storage: GCP region ${REGION}</div><div class="mfr">
+        <button class="btn" data-act="close-modal">Cancel</button>
+        <button class="btn primary" data-act="snap-go">Take Snapshot</button></div></div>`, true);
+      break;
+    case 'snap-go': closeModal(); toast('Snapshot started','On-demand backup queued for all protected Google Workspace objects.','info'); break;
+    case 'close-modal': closeModal(); break;
+    case 'toast': closeMenu(); toast(el.dataset.title, el.dataset.msg, 'info'); break;
+  }
+  if(!el.closest('#menu') && !keepMenu) closeMenu();
+});
+
+document.addEventListener('input', e=>{
+  const el=e.target.closest('[data-act="q"]'); if(!el) return;
+  S.q=el.value;
+  const host=document.querySelector('.mpgrid > div:last-child');
+  if(host){ host.innerHTML=protectTable(filterRows(listFor(S.app,S.sub))); }
+});
+document.addEventListener('change', e=>{
+  const el=e.target.closest('[data-act="range"]'); if(!el) return;
+  S.range=el.value; drawChart();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  closeMenu();
+  drawerOpen() ? closeDrawer() : closeModal();   // Esc closes the top layer first
+});
+let rsz;
+window.addEventListener('resize', ()=>{
+  closeMenu();
+  clearTimeout(rsz);
+  rsz = setTimeout(()=>{ if(S.view==='org') drawChart(); }, 120);
+});
+
+function info(text){ return `<span class="i">i<span class="tip">${text}</span></span>`; }
+
+applyHash();
+</script>
+</body>
+</html>
