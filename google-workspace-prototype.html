@@ -1362,6 +1362,11 @@ function openGroupRestore(){
     range:'7', from:'2026-08-12', to:'2026-08-19', tmpSnap:0});
   gwRender();
 }
+/* whether nested-groups step is needed */
+const hasNested = () => { const g=gwGroup(); return !!(g && nestedOf(g).length && (GW.scope==='full'||GW.scope==='membership')); };
+const gwTotal  = () => hasNested() ? 5 : 4;   // 5 steps when nested applies, 4 otherwise
+const confirmStep = () => gwTotal();
+
 const gwGroups = () => listFor('settings','group').filter(o=>o.protected);
 function gwRows(){
   const q = GW.q.trim().toLowerCase();
@@ -1375,7 +1380,7 @@ function gwRows(){
 const gwGroup = () => byId(GW.gid);
 
 function gwRender(){
-  const T=4;
+  const T=gwTotal();
   if(GW.step===1){
     const body = `<div class="mbody"><h3>Select the Restore Scope</h3>
       <div class="lead">Select what data you want to restore.</div>
@@ -1471,22 +1476,43 @@ function gwRender(){
         <div style="flex:1"><div class="lt">Restore to a different group</div>
           <div class="ld">Data will be restored into another group, leaving the original group untouched.</div>
           ${GW.loc==='diff'?diffSub:''}</div></div>
-      ${nestedBlock(g)}
+      </div>`;
+    const ready = GW.loc==='orig' || (GW.diffMode==='new') || (GW.diffMode==='existing' && GW.targetId);
+    const footer = `<div class="mfooter">
+      <div class="mfl"></div>
+      <div class="mfr"><button class="btn" data-gw="back">Back</button>
+        <button class="btn primary" data-gw="next-loc" ${ready?'':'disabled'}>Next</button></div></div>`;
+    return gwPaint(mhd('Restore a Group',true)+stepper(3,T)+body+footer);
+  }
+
+  // step 4 — nested group memberships (only reached when hasNested())
+  if(GW.step===4 && hasNested()){
+    const g = gwGroup(), kids = nestedOf(g);
+    const body = `<div class="mbody"><h3>Restore Related Groups</h3>
+      <div class="lead"><b>${g.name}</b> contains ${kids.length} ${kids.length===1?'group':'groups'} as members in this snapshot.
+        Choose whether those parent-group memberships are restored alongside the individual members.</div>
+      <label class="subopt" data-gw="nest" data-v="restore" style="padding:16px 0">
+        <input type="radio" class="rd" name="gwnest" ${GW.nest==='restore'?'checked':''}>
+        <div><div class="st2">Restore nested group memberships</div>
+          <div class="sd2">Member groups are re-added exactly as they appear in the snapshot. Deselect any you want to skip.</div></div></label>
+      ${GW.nest==='restore'?`<div class="nestlist" style="margin:0 0 18px 29px">${kids.map(k=>`
+        <label class="nestrow"><input type="checkbox" class="cb" data-gw="nestskip" data-v="${k}"
+          ${GW.nestSkip.has(k)?'':'checked'}>${ICON.group}<span>${k}</span></label>`).join('')}</div>`:''}
+      <label class="subopt" data-gw="nest" data-v="skip" style="padding:16px 0">
+        <input type="radio" class="rd" name="gwnest" ${GW.nest==='skip'?'checked':''}>
+        <div><div class="st2">Skip nested group memberships</div>
+          <div class="sd2">Only individual members are restored. Member groups are left as they are today.</div></div></label>
       <div class="locrule"></div>
       <label class="ack"><input type="checkbox" class="cb" data-gw="noroles" ${GW.noRoles?'checked':''}>
         Don't restore member roles ${info('Members are restored as MEMBER. Owner and manager roles from the snapshot are not reapplied.')}</label>
       </div>`;
-    const ready = GW.loc==='orig' || (GW.diffMode==='new') || (GW.diffMode==='existing' && GW.targetId);
-    const footer = `<div class="mfooter hasnote">
-      <div class="mfnote"><span class="bi">${ICON.info}</span>
-        <div>When restoring to a different group, only group metadata and membership are restored.
-          Member roles are restored unless you check the 'Don't restore member roles' option.</div></div>
+    const footer = `<div class="mfooter"><div class="mfl"></div>
       <div class="mfr"><button class="btn" data-gw="back">Back</button>
-        <button class="btn primary" data-gw="next" ${ready?'':'disabled'}>Next</button></div></div>`;
-    return gwPaint(mhd('Restore a Group',true)+stepper(3,T)+body+footer);
+        <button class="btn primary" data-gw="next">Next</button></div></div>`;
+    return gwPaint(mhd('Restore a Group',true)+stepper(4,T)+body+footer);
   }
 
-  // step 4 — confirmation
+  // confirmation — step 4 or 5 depending on whether nested applied
   const g = gwGroup(), d = snapsOf(g)[GW.snap];
   let locLine, locSub='';
   if(GW.loc==='orig'){
@@ -1511,6 +1537,8 @@ function gwRender(){
       : 'None selected'}</div></div>`;
   const body = `<div class="mbody"><h3>Confirmation</h3>
     <h4 style="font-size:19px;font-weight:800;margin-bottom:24px">Restore Summary</h4>
+    <!-- step number for confirmation is always the last -->
+    <span style="display:none" data-cur="${confirmStep()}" data-tot="${T}"></span>
     <div class="sumrow"><div class="sk">Recovery Scope</div><div class="sv">${SCOPE_T(GW.scope)}</div></div>
     <div class="sumrow"><div class="sk">Group</div><div class="sv">${g.name}<div class="sub">${g.email}</div></div></div>
     <div class="sumrow"><div class="sk">Snapshot</div><div class="sv">${fmtSnap(d)}</div></div>
@@ -1520,7 +1548,7 @@ function gwRender(){
   const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
     <button class="btn" data-gw="back">Back</button>
     <button class="btn primary" data-gw="finish">Restore</button></div></div>`;
-  gwPaint(mhd('Restore a Group',false)+stepper(4,T)+body+footer);
+  gwPaint(mhd('Restore a Group',false)+stepper(confirmStep(),T)+body+footer);
 }
 
 /* nested groups: only meaningful when membership is part of the restore */
@@ -1573,9 +1601,14 @@ function gwPaint(html){
         case 'nest': GW.nest=el.dataset.v; break;
         case 'nestskip': el.checked?GW.nestSkip.delete(el.dataset.v):GW.nestSkip.add(el.dataset.v); return;
         case 'noroles': GW.noRoles=el.checked; return;   // no re-render: keeps focus
-        case 'back': GW.step--; break;
+        case 'back':
+          if(GW.step===confirmStep()) GW.step = hasNested() ? 4 : 3;
+          else GW.step--;
+          break;
         case 'cancel': closeModal(); return;
         case 'next': GW.step++; break;
+        // Next from step 3 (location): jump over nested step if not needed
+        case 'next-loc': GW.step = hasNested() ? 4 : confirmStep(); break;
         case 'finish': {
           const g=gwGroup(), d=snapsOf(g)[GW.snap];
           const where = GW.loc==='orig' ? 'the original group'
