@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/google-workspace-prototype.html" }
+  ]
+}
