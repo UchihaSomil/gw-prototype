@@ -409,6 +409,22 @@ table.flat td.snapcell{width:1%;white-space:nowrap;text-align:right;padding-righ
 .toast.info{border-left-color:var(--info)}
 
 /* ---------- group restore wizard ---------- */
+/* ---------- settings Manage Protection page ---------- */
+.spbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.spbar .spcount{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.spbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+/* imported / not-imported badge on wizard */
+.importbadge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:var(--r-chip);font-size:11.5px;font-weight:600;border:1px solid transparent}
+.importbadge.yes{color:var(--success);background:var(--success-bg);border-color:var(--success-bd)}
+.importbadge.no{color:var(--neutral);background:var(--neutral-bg);border-color:rgba(198,203,203,.38)}
+/* add-group wizard confirm rows */
+.agrow{display:flex;gap:24px;margin-bottom:18px;align-items:baseline}
+.agrow .ak{width:160px;flex-shrink:0;font-size:14px;color:var(--text-mod)}
+.agrow .av{font-size:14px}
+.agrow .av b{font-weight:700}
+.agrow .av .asub{color:var(--text-weak);font-weight:400;margin-left:6px;font-size:13.5px}
+.agrow .av .adet{font-size:13px;color:var(--text-mod);margin-top:4px}
+
 /* step 1: restore scope — cards fill the dialog width so the step reads symmetric */
 .scopelist{max-width:none}
 .scopecard{display:flex;gap:15px;align-items:flex-start;padding:18px 22px;border:1px solid var(--stroke-mod);border-radius:var(--r-card);
@@ -670,7 +686,7 @@ const OUS = ['Finance OU','Rubrik Demo','Rubrik Demo Specialists','Suspended Use
 const FLOWS = {
   drive:    {protect:true,  atScale:true},
   gmail:    {protect:true,  atScale:true},
-  settings: {protect:false, atScale:false}
+  settings: {protect:true,  atScale:false}   // settings has its own protect tab UI
 };
 
 const APPS = {
@@ -942,11 +958,13 @@ function drawChart(){
 
 /* ------------------------------- APP page ------------------------------- */
 function viewApp(){
-  if(!FLOWS[S.app].protect) return restoreTab();   // single flow: no tab bar
+  if(!FLOWS[S.app].protect) return restoreTab();
   const tabs = `<div class="tabsmain">
     <div class="t ${S.tab==='restore'?'active':''}" data-act="tab" data-tab="restore">${ICON.restore} Restore</div>
     <div class="t ${S.tab==='protect'?'active':''}" data-act="tab" data-tab="protect">${ICON.shieldcog} Manage Protection</div></div>`;
-  return tabs + (S.tab==='restore' ? restoreTab() : protectTab());
+  if(S.tab==='restore') return tabs + restoreTab();
+  if(S.app==='settings') return tabs + settingsManageProtectionTab();
+  return tabs + protectTab();
 }
 
 /* ---- restore landing ---- */
@@ -1067,7 +1085,7 @@ function protectTable(rows){
    =========================================================================== */
 const bg=document.getElementById('modalbg'), md=document.getElementById('modal');
 function openModal(html,small){ md.className='modal'+(small?' sm':''); md.innerHTML=html; bg.classList.add('open'); }
-function closeModal(){ bg.classList.remove('open'); md.innerHTML=''; RW.on=false; MP.on=false; GW.on=false; }
+function closeModal(){ bg.classList.remove('open'); md.innerHTML=''; RW.on=false; MP.on=false; GW.on=false; AG.on=false; }
 bg.addEventListener('click', e=>{ if(e.target===bg) closeModal(); });
 
 /* right-side drawer — the change-snapshot panel slides over the wizard */
@@ -1309,6 +1327,196 @@ function rwPaint(html,wide){
       }
       rwRender();
     });
+  });
+}
+
+/* ===========================================================================
+   Settings: Manage Protection tab  (image 26)
+   Shows imported groups with SLA rail, count header, + button and Manage Protection
+   =========================================================================== */
+function settingsManageProtectionTab(){
+  const all  = listFor('settings','group');
+  const impo = all.filter(o=>o.protected);
+  const q = S.q.trim().toLowerCase();
+  let rows = impo.filter(o=>{
+    if(q && !(o.name.toLowerCase().includes(q)||(o.email||'').toLowerCase().includes(q))) return false;
+    if(S.slaFilter.size){ const k=o.sla||'__nosla'; if(!S.slaFilter.has(k)) return false; }
+    return true;
+  });
+  if(S.sort.col){
+    const k=S.sort.col;
+    rows=rows.slice().sort((a,b)=>{
+      const A=k==='sla'?(a.sla||''):(a[k]||''), B=k==='sla'?(b.sla||''):(b[k]||'');
+      return (A>B?1:A<B?-1:0)*S.sort.dir;
+    });
+  }
+  const selN=S.sel.size;
+  const selbar = selN ? `<div class="selbar">
+    <b>${num(selN)}</b> ${selN===1?'group':'groups'} selected
+    <span class="muted">·</span><span class="inlinelink" data-act="clear-sel">Clear</span>
+    <div class="sactions"><button class="btn sm primary" data-act="mp-open">Manage Protection</button></div></div>` : '';
+  const colcfg = `<span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose which columns to display.">${ICON.cols}</span>`;
+  const allSel = rows.length && rows.every(o=>S.sel.has(o.id));
+  const head = `<tr><th class="cbcell"><input type="checkbox" class="cb" data-act="sel-all" ${allSel?'checked':''}></th>
+    ${th('Google Group','name')} ${th('Email ID','email')} ${th('SLA Domain','sla')}
+    <th>Assignment</th><th style="max-width:280px">Group IDs <span style="float:right">${colcfg}</span></th></tr>`;
+  const body = rows.map(o=>`
+    <tr class="${S.sel.has(o.id)?'rowsel':''}" data-act="row" data-id="${o.id}">
+      <td class="cbcell"><input type="checkbox" class="cb" data-act="sel" data-id="${o.id}" ${S.sel.has(o.id)?'checked':''}></td>
+      <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
+      <td class="muted" title="${o.email}">${o.email}</td>
+      <td>${o.sla||'<span class="muted">—</span>'}</td>
+      <td>${o.assignment==='Unassigned'?'<span class="muted">—</span>':o.assignment}</td>
+      <td class="muted" title="${o.natId}" style="font-family:'Fira Code',monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${o.natId}</td>
+    </tr>`).join('');
+  const table = rows.length
+    ? `<table class="flat"><thead>${head}</thead><tbody>${body}</tbody></table>
+       <div class="tabnote">${num(rows.length)} of ${num(impo.length)} imported groups</div>`
+    : `<table class="flat"><thead>${head}</thead></table>
+       <div class="empty">No groups match the current filters.</div>`;
+  return `
+    <div class="spbar">
+      <span class="spcount">${num(impo.length)} out of ${num(all.length)} Groups ${info('Groups that have been imported into Rubrik Security Cloud. Imported groups are backed up according to their SLA Domain.')}</span>
+      <div class="right">
+        <button class="plusbtn" data-act="add-group" title="Add a group">＋</button>
+        <button class="btn primary" data-act="mp-open" ${selN?'':'disabled'}>Manage Protection</button>
+        <div class="search sm"><span class="si">${ICON.searchi}</span>
+          <input id="q" placeholder="Search by GROUP name" value="${S.q}" data-act="q"></div>
+      </div></div>
+    ${selbar}
+    <div class="mpgrid">
+      <div class="frail">${slaRail()}</div>
+      <div class="card tablecard">${table}</div>
+    </div>`;
+}
+
+/* ===========================================================================
+   Add a Group wizard  (images 27–29)
+   Step 1: What to Expect  ·  Step 2: Select a Group  ·  Confirmation (step 2)
+   =========================================================================== */
+const AG = {on:false};
+function openAddGroup(){
+  Object.assign(AG, {on:true, step:1, gid:null, q:'', confirm:false,
+    statusF:new Set(['imported','notimported'])});
+  agRender();
+}
+function agRows(){
+  const all = listFor('settings','group');
+  const q = AG.q.trim().toLowerCase();
+  return all.filter(o=>{
+    if(q && !(o.name.toLowerCase().includes(q)||(o.email||'').toLowerCase().includes(q))) return false;
+    const st = o.protected ? 'imported' : 'notimported';
+    if(AG.statusF.size && !AG.statusF.has(st)) return false;
+    return true;
+  });
+}
+function agRender(){
+  const T=2;
+  /* step 1 — What to Expect */
+  if(AG.step===1){
+    const body=`<div class="mbody"><h3>What to Expect</h3>
+      <div class="lead" style="margin-bottom:28px">Adding a group to Rubrik Security Cloud lets you back up and restore
+        the group's settings and membership. Once added, the group is backed up according to its assigned SLA Domain.</div>
+      <div class="scopelist">
+        <div class="scopecard on"><input type="radio" class="rd" checked><div>
+          <div class="sct">Group settings backed up</div>
+          <div class="scd">Posting permissions, conversation history access and external membership permissions are included.</div></div></div>
+        <div class="scopecard" style="cursor:default"><input type="radio" class="rd" disabled><div>
+          <div class="sct">Membership list backed up</div>
+          <div class="scd">Each member's email address, role and member type are captured in every snapshot.</div></div></div>
+        <div class="scopecard" style="cursor:default"><input type="radio" class="rd" disabled><div>
+          <div class="sct">Group metadata backed up</div>
+          <div class="scd">Name, description, primary email address, email aliases and group type are preserved.</div></div></div>
+      </div></div>`;
+    const footer=`<div class="mfooter"><div class="mfl"></div><div class="mfr">
+      <button class="btn" data-ag="cancel">Cancel</button>
+      <button class="btn primary" data-ag="next">Next</button></div></div>`;
+    return agPaint(mhd('Add a Group',false)+stepper(1,T)+body+footer);
+  }
+  /* confirmation */
+  if(AG.confirm){
+    const o=byId(AG.gid), s=slaOf(APPS.settings.sla)||{};
+    const body=`<div class="mbody"><h3>Confirmation</h3>
+      <div class="agrow"><div class="ak">Group</div>
+        <div class="av"><b>${o.name}</b><span class="asub">(${o.email})</span></div></div>
+      <div class="agrow"><div class="ak">SLA Domain</div>
+        <div class="av"><b>${APPS.settings.sla} (Derived)</b>
+          <div class="adet">Backup every ${s.freq||'24 hours'} | Retain for ${s.retLabel||'6 months'}</div></div></div>
+      </div>`;
+    const footer=`<div class="mfooter"><div class="mfl"></div><div class="mfr">
+      <button class="btn" data-ag="back">Back</button>
+      <button class="btn primary" data-ag="add">Add</button></div></div>`;
+    return agPaint(mhd('Add a Group',true)+stepper(2,T)+body+footer);
+  }
+  /* step 2 — Select a Group */
+  const rows=agRows(), all=listFor('settings','group');
+  const rail=`<div class="frgroup">
+    <div class="frhd" data-act="fr-toggle">Group status <span class="cr">▲</span></div>
+    <div class="frbody">
+      <label class="fropt"><input type="checkbox" class="cb" data-ag="statusf" data-v="imported"
+        ${AG.statusF.has('imported')?'checked':''}><span>Imported</span></label>
+      <label class="fropt"><input type="checkbox" class="cb" data-ag="statusf" data-v="notimported"
+        ${AG.statusF.has('notimported')?'checked':''}>
+        <span>Not imported ${info('Groups discovered in Google Workspace that have not yet been added to RSC.')}</span></label>
+    </div></div>`;
+  const colcfg=`<span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose which columns.">${ICON.cols}</span>`;
+  const tableHtml=`<div class="wlist"><table class="flat">
+    <thead><tr><th class="cbcell"></th>
+      <th class="s" data-ag="sort" data-col="name">Group ${ICON.chevsm}</th>
+      <th>Email ID</th><th>Group ID <span style="float:right">${colcfg}</span></th></tr></thead>
+    <tbody>${rows.map(o=>`
+      <tr class="${AG.gid===o.id?'rowsel':''}" data-ag="pick" data-id="${o.id}">
+        <td class="cbcell"><input type="radio" class="rd" name="aggrp" ${AG.gid===o.id?'checked':''}></td>
+        <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span>
+          ${o.protected?`<span class="importbadge yes" style="margin-left:9px">Imported</span>`:
+            `<span class="importbadge no" style="margin-left:9px">Not imported</span>`}
+        </div></td>
+        <td class="muted" title="${o.email}" style="max-width:230px">${o.email}</td>
+        <td class="muted" title="${o.natId}" style="font-family:'Fira Code',monospace;font-size:11.5px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.natId}</td>
+      </tr>`).join('')}
+    </tbody></table>
+    ${rows.length?'':`<div class="empty">No groups match the current filters.</div>`}
+    </div>`;
+  const body=`<div class="mbody fill"><h3>Select a Group</h3>
+    <div class="wtop"><div class="lead">${num(all.length)} Google groups — select the group you want to add to RSC.
+      Group members will be backed up according to their existing SLA Domains.</div>
+      <div class="search sm"><span class="si">${ICON.searchi}</span>
+        <input placeholder="Search by group name" value="${AG.q}" data-ag="q"></div></div>
+    <div class="wsplit"><div class="frail">${rail}</div><div>${tableHtml}</div></div></div>`;
+  const footer=`<div class="mfooter">
+    <div class="mfl">${AG.gid?`<span style="color:var(--accent);font-weight:600">1 item selected</span>`:''}</div>
+    <div class="mfr"><button class="btn" data-ag="back">Back</button>
+      <button class="btn primary" data-ag="next" ${AG.gid?'':'disabled'}>Next</button></div></div>`;
+  agPaint(mhd('Add a Group',true)+stepper(2,T)+body+footer);
+}
+function agPaint(html){
+  openModal(html);
+  md.className='modal gw';
+  md.querySelectorAll('[data-ag]').forEach(el=>{
+    const a=el.dataset.ag;
+    if(a==='q'){ el.addEventListener('input',()=>{ AG.q=el.value; agRender(); }); return; }
+    el.addEventListener('click', e=>{
+      switch(a){
+        case 'statusf': AG.statusF.has(el.dataset.v)?AG.statusF.delete(el.dataset.v):AG.statusF.add(el.dataset.v); break;
+        case 'pick': e.stopPropagation(); AG.gid=el.dataset.id; break;
+        case 'back': AG.confirm ? (AG.confirm=false) : AG.step--; break;
+        case 'cancel': closeModal(); return;
+        case 'next': AG.step===1 ? AG.step++ : (AG.confirm=true); break;
+        case 'sort': break;
+        case 'add': {
+          const o=byId(AG.gid);
+          if(o && !o.protected){ o.protected=true; o.sla=APPS.settings.sla; o.assignment='Derived'; o.snaps=0; o.size=0; }
+          closeModal();
+          toast('Group added',`${byId(AG.gid).name} has been added to Workspace Settings. The first snapshot runs in the next backup window.`);
+          render(); return;
+        }
+      }
+      agRender();
+    });
+  });
+  /* row click for step 2 */
+  md.querySelectorAll('[data-ag="pick"]').forEach(row=>{
+    row.addEventListener('click', ()=>{ AG.gid=row.dataset.id; agRender(); });
   });
 }
 
@@ -1782,8 +1990,8 @@ document.addEventListener('click', e=>{
     case 'open-app': go('app',{app:el.dataset.app,tab:'restore'}); break;
     case 'tab': go('app',{app:S.app,tab:el.dataset.tab}); break;
     case 'sub': go('app',{app:S.app,tab:'protect',sub:el.dataset.sub}); break;
-    // groups use their own 4-step wizard; Drive/Gmail keep the generic one
     case 'restore': el.dataset.kind==='group' ? openGroupRestore() : openRestore(el.dataset.kind); break;
+    case 'add-group': openAddGroup(); break;
 
     case 'sort': { const c=el.dataset.col; S.sort={col:c,dir:S.sort.col===c?-S.sort.dir:1}; render(); break; }
     case 'sel': { e.stopPropagation(); const id=el.dataset.id; S.sel.has(id)?S.sel.delete(id):S.sel.add(id); render(); break; }
