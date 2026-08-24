@@ -272,7 +272,7 @@ table.flat th.s{cursor:pointer}
 table.flat th.s:hover{color:var(--text)}
 table.flat th .ar{font-size:9px;margin-left:5px;opacity:.85}
 table.flat td{padding:0 14px;height:56px;border-bottom:1px solid var(--stroke-weak);vertical-align:middle;font-size:13.5px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
 table.flat tbody tr{cursor:pointer}
 table.flat tbody tr:hover{background:var(--row-hover)}
 /* row-selected class is deliberately NOT ".sel" — that is the dropdown wrapper,
@@ -1350,19 +1350,13 @@ function settingsManageProtectionTab(){
       return (A>B?1:A<B?-1:0)*S.sort.dir;
     });
   }
-  const selN=S.sel.size;
-  const selbar = selN ? `<div class="selbar">
-    <b>${num(selN)}</b> ${selN===1?'group':'groups'} selected
-    <span class="muted">·</span><span class="inlinelink" data-act="clear-sel">Clear</span>
-    <div class="sactions"><button class="btn sm primary" data-act="mp-open">Manage Protection</button></div></div>` : '';
   const colcfg = `<span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose which columns to display.">${ICON.cols}</span>`;
-  const allSel = rows.length && rows.every(o=>S.sel.has(o.id));
-  const head = `<tr><th class="cbcell"><input type="checkbox" class="cb" data-act="sel-all" ${allSel?'checked':''}></th>
+  /* no selection — Manage Protection is always active, no checkboxes */
+  const head = `<tr>
     ${th('Google Group','name')} ${th('Email ID','email')} ${th('SLA Domain','sla')}
     <th>Assignment</th><th style="max-width:280px">Group IDs <span style="float:right">${colcfg}</span></th></tr>`;
   const body = rows.map(o=>`
-    <tr class="${S.sel.has(o.id)?'rowsel':''}" data-act="row" data-id="${o.id}">
-      <td class="cbcell"><input type="checkbox" class="cb" data-act="sel" data-id="${o.id}" ${S.sel.has(o.id)?'checked':''}></td>
+    <tr style="cursor:default">
       <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
       <td class="muted" title="${o.email}">${o.email}</td>
       <td>${o.sla||'<span class="muted">—</span>'}</td>
@@ -1379,11 +1373,10 @@ function settingsManageProtectionTab(){
       <span class="spcount">${num(impo.length)} out of ${num(all.length)} Groups ${info('Groups that have been imported into Rubrik Security Cloud. Imported groups are backed up according to their SLA Domain.')}</span>
       <div class="right">
         <button class="plusbtn" data-act="add-group" title="Add a group">＋</button>
-        <button class="btn primary" data-act="mp-open" ${selN?'':'disabled'}>Manage Protection</button>
+        <button class="btn primary" data-act="mp-settings">Manage Protection</button>
         <div class="search sm"><span class="si">${ICON.searchi}</span>
           <input id="q" placeholder="Search by GROUP name" value="${S.q}" data-act="q"></div>
       </div></div>
-    ${selbar}
     <div class="mpgrid">
       <div class="frail">${slaRail()}</div>
       <div class="card tablecard">${table}</div>
@@ -1396,6 +1389,7 @@ function settingsManageProtectionTab(){
    =========================================================================== */
 const AG = {on:false};
 function openAddGroup(){
+  /* starts directly at group selection — no What to Expect step */
   Object.assign(AG, {on:true, step:1, gid:null, q:'', confirm:false,
     statusF:new Set(['imported','notimported'])});
   agRender();
@@ -1411,29 +1405,8 @@ function agRows(){
   });
 }
 function agRender(){
-  const T=2;
-  /* step 1 — What to Expect */
-  if(AG.step===1){
-    const body=`<div class="mbody"><h3>What to Expect</h3>
-      <div class="lead" style="margin-bottom:28px">Adding a group to Rubrik Security Cloud lets you back up and restore
-        the group's settings and membership. Once added, the group is backed up according to its assigned SLA Domain.</div>
-      <div class="scopelist">
-        <div class="scopecard on"><input type="radio" class="rd" checked><div>
-          <div class="sct">Group settings backed up</div>
-          <div class="scd">Posting permissions, conversation history access and external membership permissions are included.</div></div></div>
-        <div class="scopecard" style="cursor:default"><input type="radio" class="rd" disabled><div>
-          <div class="sct">Membership list backed up</div>
-          <div class="scd">Each member's email address, role and member type are captured in every snapshot.</div></div></div>
-        <div class="scopecard" style="cursor:default"><input type="radio" class="rd" disabled><div>
-          <div class="sct">Group metadata backed up</div>
-          <div class="scd">Name, description, primary email address, email aliases and group type are preserved.</div></div></div>
-      </div></div>`;
-    const footer=`<div class="mfooter"><div class="mfl"></div><div class="mfr">
-      <button class="btn" data-ag="cancel">Cancel</button>
-      <button class="btn primary" data-ag="next">Next</button></div></div>`;
-    return agPaint(mhd('Add a Group',false)+stepper(1,T)+body+footer);
-  }
-  /* confirmation */
+  const T=2;   // step 1=Select, step 2=Confirm
+  /* step 2 — Confirmation */
   if(AG.confirm){
     const o=byId(AG.gid), s=slaOf(APPS.settings.sla)||{};
     const body=`<div class="mbody"><h3>Confirmation</h3>
@@ -1446,9 +1419,9 @@ function agRender(){
     const footer=`<div class="mfooter"><div class="mfl"></div><div class="mfr">
       <button class="btn" data-ag="back">Back</button>
       <button class="btn primary" data-ag="add">Add</button></div></div>`;
-    return agPaint(mhd('Add a Group',true)+stepper(2,T)+body+footer);
+    return agPaint(mhd('Add a Group',false)+stepper(2,T)+body+footer);
   }
-  /* step 2 — Select a Group */
+  /* step 1 — Select a Group */
   const rows=agRows(), all=listFor('settings','group');
   const rail=`<div class="frgroup">
     <div class="frhd" data-act="fr-toggle">Group status <span class="cr">▲</span></div>
@@ -1487,7 +1460,7 @@ function agRender(){
     <div class="mfl">${AG.gid?`<span style="color:var(--accent);font-weight:600">1 item selected</span>`:''}</div>
     <div class="mfr"><button class="btn" data-ag="back">Back</button>
       <button class="btn primary" data-ag="next" ${AG.gid?'':'disabled'}>Next</button></div></div>`;
-  agPaint(mhd('Add a Group',true)+stepper(2,T)+body+footer);
+  agPaint(mhd('Add a Group',true)+stepper(1,T)+body+footer);
 }
 function agPaint(html){
   openModal(html);
@@ -1499,9 +1472,9 @@ function agPaint(html){
       switch(a){
         case 'statusf': AG.statusF.has(el.dataset.v)?AG.statusF.delete(el.dataset.v):AG.statusF.add(el.dataset.v); break;
         case 'pick': e.stopPropagation(); AG.gid=el.dataset.id; break;
-        case 'back': AG.confirm ? (AG.confirm=false) : AG.step--; break;
+        case 'back': AG.confirm=false; break;
         case 'cancel': closeModal(); return;
-        case 'next': AG.step===1 ? AG.step++ : (AG.confirm=true); break;
+        case 'next': AG.confirm=true; break;
         case 'sort': break;
         case 'add': {
           const o=byId(AG.gid);
@@ -1992,6 +1965,21 @@ document.addEventListener('click', e=>{
     case 'sub': go('app',{app:S.app,tab:'protect',sub:el.dataset.sub}); break;
     case 'restore': el.dataset.kind==='group' ? openGroupRestore() : openRestore(el.dataset.kind); break;
     case 'add-group': openAddGroup(); break;
+    case 'mp-settings': openModal(`${mhd('Manage Protection',false)}
+      <div class="mbody"><h3 style="font-size:21px">Manage Protection</h3>
+        <div class="lead">Assign or update SLA Domains for all groups in <b>Workspace Settings</b>.
+          Changes apply to all ${listFor('settings','group').filter(o=>o.protected).length} imported groups.</div>
+        <div class="field" style="margin-top:24px"><label>SLA Domain</label>
+          <select id="mpsdomset">${WS_SLA.map(s=>`<option value="${s.name}" ${s.name===APPS.settings.sla?'selected':''}>${s.name} — ${s.freq} / ${s.retLabel}</option>`).join('')}</select>
+          <div class="hint">All groups without a direct assignment will inherit this SLA Domain.</div></div></div>
+      <div class="mfooter"><div class="mfl"></div><div class="mfr">
+        <button class="btn" data-act="close-modal">Cancel</button>
+        <button class="btn primary" id="mpsapply">Apply</button></div></div>`, true);
+      document.getElementById('mpsapply').addEventListener('click',()=>{
+        const sla=document.getElementById('mpsdomset').value;
+        listFor('settings','group').filter(o=>o.protected).forEach(o=>{o.sla=sla;});
+        closeModal(); toast('Protection updated',`SLA Domain updated to ${sla} for all imported groups.`); render();
+      }); break;
 
     case 'sort': { const c=el.dataset.col; S.sort={col:c,dir:S.sort.col===c?-S.sort.dir:1}; render(); break; }
     case 'sel': { e.stopPropagation(); const id=el.dataset.id; S.sel.has(id)?S.sel.delete(id):S.sel.add(id); render(); break; }
