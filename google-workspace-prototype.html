@@ -792,7 +792,8 @@ const GTYPE = ['Email list','Collaborative inbox','Security'];
     members, size:app==='settings'?size:0, natId:uuid(), sla:on?APPS[app].sla:null,
     assignment:on?'Derived':'Unassigned', protected:on, snaps:on?78:0,
     gtype:GTYPE[i%3], status:i===11?'Relic':'Active',
-    aliases:i%2 ? [handle+'-all@'+DOMAIN] : []}));
+    aliases: i%3===0 ? [handle+'-all@'+DOMAIN, handle+'-group@'+DOMAIN, handle+'-team@'+DOMAIN]
+           : i%3===1 ? [handle+'-all@'+DOMAIN] : []}));
 });
 
 /* ---------------------------- derived helpers ---------------------------- */
@@ -1653,35 +1654,64 @@ function gwRender(){
       </label>
     </div>`;
 
+    /* alias cell helper: 1 alias → show name; 2+ → first + "+N more" (teal link opens modal panel) */
+    const aliasCell = o => {
+      if(!o.aliases || !o.aliases.length) return `<span class="muted">—</span>`;
+      if(o.aliases.length===1) return `<span class="muted">${o.aliases[0]}</span>`;
+      return `<span class="muted">${o.aliases[0]}</span>
+        <span class="inlinelink" style="margin-left:8px;font-size:12px" data-gw="viewaliases" data-id="${o.id}">+${o.aliases.length-1} more</span>`;
+    };
+    const colcfg = `<span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose columns.">${ICON.cols}</span>`;
+    /* shared table header for browse + search */
+    const gwThead = isBrowse => `<tr>
+      ${isBrowse ? `<th class="cbcell"></th>` : `<th class="cbcell"></th>`}
+      <th>Group</th><th>Email</th><th>Aliases</th><th class="tac">Members</th>
+      <th class="tac">${colcfg}</th></tr>`;
+    const gwTrow = (o, isBrowse) => `
+      <tr class="${GW.sel.has(o.id)?'rowsel':''}" data-gw="pickrow" data-id="${o.id}">
+        <td class="cbcell">${isBrowse
+          ? `<input type="checkbox" class="cb" data-gw="pickbrowse" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}>`
+          : `<input type="radio" class="rd" name="gwsearch" data-gw="picksearch" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}>`}
+        </td>
+        <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
+        <td class="muted" title="${o.email}" style="max-width:200px">${o.email}</td>
+        <td style="max-width:180px">${aliasCell(o)}</td>
+        <td class="tac">${num(o.members)}</td>
+        <td></td>
+      </tr>`;
+
+    /* Group Type filter rail — shown in both modes */
+    const gwRail = `<div class="frgroup"><div class="frhd" data-act="fr-toggle">Group Type <span class="cr">▲</span></div>
+      <div class="frbody">${GTYPE.map(t=>`<label class="fropt"><input type="checkbox" class="cb" data-gw="typef" data-v="${t}"
+        ${GW.typeF.has(t)?'checked':''}><span>${t}</span></label>`).join('')}</div></div>`;
+
+    /* search bar sits top-right of the table area for both modes */
+    const gwSearchBar = `<div class="search sm" style="margin-bottom:14px;margin-left:auto;display:block">
+      <span class="si">${ICON.searchi}</span>
+      <input id="gwq" placeholder="Search by group name or email…" value="${GW.q}" data-gw="q" style="width:260px"></div>`;
+
     let tableArea = '';
     if(GW.mode==='browse'){
-      const browseRows = allGroups.filter(o=>!q || o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q));
-      const rail = `<div class="frgroup"><div class="frhd" data-act="fr-toggle">Group Type <span class="cr">▲</span></div>
-        <div class="frbody">${GTYPE.map(t=>`<label class="fropt"><input type="checkbox" class="cb" data-gw="typef" data-v="${t}"
-          ${GW.typeF.has(t)?'checked':''}><span>${t}</span></label>`).join('')}</div></div>`;
+      const browseRows = allGroups.filter(o=>{
+        if(GW.typeF.size && !GW.typeF.has(o.gtype)) return false;
+        return !q || o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q);
+      });
       const allSel = browseRows.length && browseRows.every(o=>GW.sel.has(o.id));
-      const tbl = `<div class="wlist"><table class="flat">
-        <thead><tr>
-          <th class="cbcell"><input type="checkbox" class="cb" data-gw="selall" ${allSel?'checked':''}></th>
-          <th>Group</th><th>Email</th><th class="tac">Members</th>
-          <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose columns.">${ICON.cols}</span></th>
-        </tr></thead>
-        <tbody>${browseRows.map(o=>`
-          <tr class="${GW.sel.has(o.id)?'rowsel':''}" data-gw="pickrow" data-id="${o.id}">
-            <td class="cbcell"><input type="checkbox" class="cb" data-gw="pickbrowse" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}></td>
-            <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
-            <td class="muted" title="${o.email}" style="max-width:220px">${o.email}</td>
-            <td class="tac">${num(o.members)}</td>
-            <td></td>
-          </tr>`).join('')}
-        </tbody></table>
-        ${browseRows.length?'':'<div class="empty">No groups match the search.</div>'}
-      </div>`;
-      tableArea = `<div class="wsplit"><div class="frail">${rail}</div><div>${tbl}</div></div>`;
+      const tbl = `<div style="display:flex;justify-content:flex-end">${gwSearchBar}</div>
+        <div class="wlist"><table class="flat">
+          <thead><tr>
+            <th class="cbcell"><input type="checkbox" class="cb" data-gw="selall" ${allSel?'checked':''}></th>
+            <th>Group</th><th>Email</th><th>Aliases</th><th class="tac">Members</th>
+            <th class="tac">${colcfg}</th></tr></thead>
+          <tbody>${browseRows.map(o=>gwTrow(o,true)).join('')}</tbody></table>
+          ${browseRows.length?'':'<div class="empty">No groups match.</div>'}
+        </div>`;
+      tableArea = `<div class="wsplit"><div class="frail">${gwRail}</div><div style="min-width:0">${tbl}</div></div>`;
     } else {
       /* search mode */
+      const searchBarSearch = `<div style="display:flex;justify-content:flex-end">${gwSearchBar}</div>`;
       if(!q){
-        tableArea = `<div class="emptysearch">
+        tableArea = searchBarSearch + `<div class="emptysearch">
           <svg width="180" height="140" viewBox="0 0 180 140" fill="none">
             <ellipse cx="90" cy="118" rx="60" ry="14" fill="rgba(47,202,255,.08)"/>
             <rect x="30" y="30" width="88" height="68" rx="10" fill="rgba(47,202,255,.12)" stroke="rgba(77,210,210,.4)" stroke-width="1.5"/>
@@ -1697,22 +1727,13 @@ function gwRender(){
         </div>`;
       } else {
         const searchRows = allGroups.filter(o=>o.name.toLowerCase().includes(q)||o.email.toLowerCase().includes(q));
-        tableArea = `<div class="wlist"><table class="flat">
-          <thead><tr>
-            <th class="cbcell"></th><th>Group</th><th>Email</th><th class="tac">Members</th>
-            <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose columns.">${ICON.cols}</span></th>
-          </tr></thead>
-          <tbody>${searchRows.map(o=>`
-            <tr class="${GW.sel.has(o.id)?'rowsel':''}" data-gw="pickrow" data-id="${o.id}">
-              <td class="cbcell"><input type="radio" class="rd" name="gwsearch" data-gw="picksearch" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}></td>
-              <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
-              <td class="muted" title="${o.email}" style="max-width:220px">${o.email}</td>
-              <td class="tac">${num(o.members)}</td>
-              <td></td>
-            </tr>`).join('')}
-          </tbody></table>
-          ${searchRows.length?'':'<div class="empty">No groups match.</div>'}
-        </div>`;
+        tableArea = searchBarSearch + `<div class="wsplit"><div class="frail">${gwRail}</div><div style="min-width:0">
+          <div class="wlist"><table class="flat">
+            <thead><tr><th class="cbcell"></th><th>Group</th><th>Email</th><th>Aliases</th>
+              <th class="tac">Members</th><th class="tac">${colcfg}</th></tr></thead>
+            <tbody>${searchRows.map(o=>gwTrow(o,false)).join('')}</tbody></table>
+            ${searchRows.length?'':'<div class="empty">No groups match.</div>'}
+          </div></div></div>`;
       }
     }
 
@@ -1720,8 +1741,6 @@ function gwRender(){
     const body = `<div class="mbody fill">
       <h3>${GW.mode==='browse' ? 'Select Group and Snapshot' : 'Search and Select a Group'}</h3>
       ${modeToggle}
-      ${GW.mode==='search' ? `<div class="search" style="margin-bottom:18px;width:100%"><span class="si">${ICON.searchi}</span>
-        <input id="gwq" style="width:100%" placeholder="Search by group name…" value="${GW.q}" data-gw="q"></div>` : ''}
       ${tableArea}
     </div>`;
     const footer = `<div class="mfooter">
@@ -1733,29 +1752,17 @@ function gwRender(){
 
   /* ---- STEP 3: child group recovery (optional) ---- */
   if(GW.step===3){
-    const selObjs = [...GW.sel].map(byId).filter(Boolean);
-    const selList = selObjs.map(o=>`
-      <div class="selgrouprow">
-        <div class="oname">${ICON.group}<span class="nn">${o.name}</span></div>
-        <div class="sge">${o.email}</div>
-      </div>`).join('');
-    /* collect all child groups from all selected groups */
-    const allKids = [...new Set(selObjs.flatMap(o=>nestedOf(o)))];
-    const childSection = allKids.length ? `
-      ${GW.childRestore ? `<div class="childchips">${allKids.map(k=>`
-        <span class="childchip">${ICON.group}${k}</span>`).join('')}</div>` : ''}
-    ` : '';
     const body = `<div class="mbody"><h3>Restore Related Groups</h3>
-      <div class="lead">Choose whether to also restore child groups that are members of the selected group(s).</div>
-      <div class="selgrouplist">${selList}</div>
-      <div class="locrule"></div>
-      <label class="ack" style="cursor:pointer"><input type="checkbox" class="cb" data-gw="child" ${GW.childRestore?'checked':''}>
+      <div class="lead" style="margin-bottom:32px">Some groups contain other groups as members (nested groups).
+        Choose whether to include those child groups in this restore.</div>
+      <label class="ack" style="align-items:flex-start;gap:14px;cursor:pointer">
+        <input type="checkbox" class="cb" data-gw="child" ${GW.childRestore?'checked':''} style="margin-top:2px">
         <div>
-          <div style="font-weight:600;margin-bottom:4px">Also restore child groups</div>
-          <div style="font-size:12.5px;color:var(--text-mod);">If the selected group(s) contain other groups as members, those nested group memberships will also be restored.</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:7px">Also restore child groups</div>
+          <div style="font-size:13.5px;color:var(--text-mod);line-height:1.7;max-width:680px">If any of the selected groups contain other groups as members,
+            those child-group memberships will also be restored. This applies to all groups in this restore job.</div>
         </div>
       </label>
-      ${childSection}
     </div>`;
     const footer = `<div class="mfooter"><div class="mfl"></div>
       <div class="mfr"><button class="btn" data-gw="back">Back</button>
@@ -1835,6 +1842,20 @@ function gwPaint(html){
           e.stopPropagation();
           GW.sel = new Set([el.dataset.id]);
           break;
+        }
+        case 'viewaliases': {
+          e.stopPropagation();
+          const o = byId(el.dataset.id);
+          openModalPanel(`
+            <div class="mhd"><h2>Aliases for ${o.name}</h2><div class="mact"><span data-mp="close">✕</span></div></div>
+            <div class="mbody">
+              <div class="lead" style="margin-bottom:22px">All email aliases configured for this group in Google Workspace.</div>
+              <table class="flat"><thead><tr><th style="padding-bottom:12px">Alias email</th></tr></thead>
+              <tbody>${(o.aliases||[]).map(a=>`<tr style="cursor:default"><td class="muted">${a}</td></tr>`).join('')}</tbody></table>
+            </div>`, null);
+          document.getElementById('mpanel').querySelector('[data-mp="close"]')
+            .addEventListener('click', closeModalPanel);
+          return;
         }
         case 'chgsnap': {
           e.stopPropagation();
