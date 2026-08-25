@@ -409,7 +409,28 @@ table.flat td.snapcell{width:1%;white-space:nowrap;text-align:right;padding-righ
 .toast.info{border-left-color:var(--info)}
 
 /* ---------- group restore wizard ---------- */
+/* ---------- modal-internal side panel (snapshot picker inside wizard) ---------- */
+.modal{position:relative;overflow:hidden}   /* ensures child panels are clipped */
+.modal-dim{position:absolute;inset:0;background:rgba(3,10,22,.42);z-index:9;cursor:pointer}
+.modal-panel{position:absolute;top:0;right:0;bottom:0;width:72%;
+  background:linear-gradient(180deg,#0c3d6a,#0b2f52);border-left:1px solid var(--border-mod);
+  display:flex;flex-direction:column;z-index:10;
+  animation:mpslide .2s ease-out}
+@keyframes mpslide{from{transform:translateX(44px);opacity:.55}to{transform:none;opacity:1}}
+.modal-panel .mhd{padding:18px 26px;border-bottom:1px solid var(--stroke-weak);background:rgba(255,255,255,.03);flex-shrink:0}
+.modal-panel .mhd h2{font-size:18px}
+.modal-panel .mbody{flex:1;overflow-y:auto;min-height:0;padding:20px 26px}
+.modal-panel .mfooter{flex-shrink:0}
+
 /* ---------- settings Manage Protection page ---------- */
+/* VIEW MEMBERS hover button */
+.srow{position:relative}
+.viewmbtn{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  height:30px;padding:0 13px;border-radius:var(--r-btn);border:none;background:var(--accent-solid);
+  color:#fff;font-family:var(--font);font-size:11.5px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;cursor:pointer;opacity:0;transition:opacity .12s}
+.srow:hover .viewmbtn{opacity:1}
+.viewmbtn:hover{background:var(--accent-hover)}
 .spbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
 .spbar .spcount{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
 .spbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
@@ -482,16 +503,25 @@ table.flat td.snapcell{width:1%;white-space:nowrap;text-align:right;padding-righ
 .mfnote .bi{color:var(--info);flex-shrink:0;margin-top:1px}
 .mfooter.hasnote{border-top:1px solid var(--accent)}
 
-/* step 3: nested (member) groups */
-.nestbox{border:1px solid var(--stroke-mod);border-radius:var(--r-card);background:rgba(47,202,255,.04);padding:18px 20px;margin:4px 0 22px}
-.nesthd{font-size:15px;font-weight:700;margin-bottom:7px}
-.nestsub{font-size:13px;color:var(--text-mod);line-height:1.6;margin-bottom:12px;max-width:760px}
-.nestbox .subopt{padding:7px 0}
-.nestlist{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 10px 29px}
-.nestrow{display:inline-flex;align-items:center;gap:9px;height:32px;padding:0 12px;border:1px solid var(--stroke-mod);border-radius:20px;
-  background:rgba(47,202,255,.05);font-size:12.5px;cursor:pointer}
-.nestrow:hover{border-color:rgba(77,210,210,.45)}
-.nestrow svg{width:15px;height:15px;color:var(--text-mod)}
+/* browse/search mode toggle */
+.moderadios{margin-bottom:20px;border-bottom:1px solid var(--stroke-weak);padding-bottom:16px}
+.moderadio{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13.5px;cursor:pointer}
+.moderadio b{font-weight:700}
+.moderadio .sub{color:var(--text-mod);font-weight:400}
+/* empty state for search mode */
+.emptysearch{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;gap:14px}
+.emptysearch h3{font-size:20px;font-weight:700}
+.emptysearch p{font-size:13.5px;color:var(--text-mod);max-width:480px;line-height:1.65}
+/* child groups chips in step 3 */
+.childchips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0 26px}
+.childchip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border:1px solid var(--stroke-mod);
+  border-radius:20px;background:rgba(47,202,255,.05);font-size:12.5px}
+.childchip svg{width:14px;height:14px;color:var(--text-mod)}
+/* selected groups list in step 3 */
+.selgrouplist{margin-bottom:20px}
+.selgrouprow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--stroke-weak);font-size:13.5px}
+.selgrouprow:first-child{border-top:1px solid var(--stroke-weak)}
+.selgrouprow .sge{font-size:12px;color:var(--text-weak);margin-top:2px}
 
 /* step 4: confirmation summary */
 .sumrow{display:flex;gap:24px;margin-bottom:20px}
@@ -1088,12 +1118,28 @@ function openModal(html,small){ md.className='modal'+(small?' sm':''); md.innerH
 function closeModal(){ bg.classList.remove('open'); md.innerHTML=''; RW.on=false; MP.on=false; GW.on=false; AG.on=false; }
 bg.addEventListener('click', e=>{ if(e.target===bg) closeModal(); });
 
-/* right-side drawer — the change-snapshot panel slides over the wizard */
+/* page-level drawer — used for View Members (slides over the whole page) */
 const dbg=document.getElementById('drawerbg'), dr=document.getElementById('drawer');
 function openDrawer(html){ dr.innerHTML=html; dr.classList.add('open'); dbg.classList.add('open'); }
 function closeDrawer(){ dr.classList.remove('open'); dbg.classList.remove('open'); dr.innerHTML=''; }
 dbg.addEventListener('click', closeDrawer);
 const drawerOpen = () => dr.classList.contains('open');
+
+/* modal-internal panel — snapshot picker slides in from the right inside the wizard modal */
+function openModalPanel(html, repaint){
+  closeModalPanel();
+  GW._repaint = repaint;   // called when the panel needs to redraw itself
+  const dim=document.createElement('div'); dim.className='modal-dim'; dim.onclick=closeModalPanel;
+  const panel=document.createElement('div'); panel.className='modal-panel'; panel.id='mpanel';
+  panel.innerHTML=html;
+  md.appendChild(dim); md.appendChild(panel);
+}
+function closeModalPanel(){
+  md.querySelector('.modal-dim')?.remove();
+  const p=md.querySelector('#mpanel'); if(p) p.remove();
+  GW._repaint=null;
+}
+const modalPanelOpen = () => !!md.querySelector('#mpanel');
 
 const menuEl=document.getElementById('menu');
 function openMenu(anchor,html){
@@ -1356,12 +1402,13 @@ function settingsManageProtectionTab(){
     ${th('Google Group','name')} ${th('Email ID','email')} ${th('SLA Domain','sla')}
     <th>Assignment</th><th style="max-width:280px">Group IDs <span style="float:right">${colcfg}</span></th></tr>`;
   const body = rows.map(o=>`
-    <tr style="cursor:default">
+    <tr class="srow" style="cursor:default">
       <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
       <td class="muted" title="${o.email}">${o.email}</td>
       <td>${o.sla||'<span class="muted">—</span>'}</td>
       <td>${o.assignment==='Unassigned'?'<span class="muted">—</span>':o.assignment}</td>
-      <td class="muted" title="${o.natId}" style="font-family:'Fira Code',monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${o.natId}</td>
+      <td class="muted" title="${o.natId}" style="font-family:'Fira Code',monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">${o.natId}
+        <button class="viewmbtn" data-act="view-members" data-id="${o.id}">View Members</button></td>
     </tr>`).join('');
   const table = rows.length
     ? `<table class="flat"><thead>${head}</thead><tbody>${body}</tbody></table>
@@ -1534,225 +1581,223 @@ const NESTED = {
 const TODAY = '2026-08-19 10:28';
 
 const GW = {on:false};
+const gwT = 4;  // always 4 steps
+const gwGroups = () => listFor('settings','group').filter(o=>o.protected);
+const gwGroup  = () => [...GW.sel][0] ? byId([...GW.sel][0]) : null;
+
 function openGroupRestore(){
-  Object.assign(GW, {on:true, step:1, scope:'full', gid:null, snap:0, q:'',
-    typeF:new Set(), status:'Active',
-    loc:'orig', origMode:'merge', diffMode:'existing', targetId:null,
-    newName:'', newEmail:'', noRoles:false,
-    nest:'restore', nestSkip:new Set(),
-    range:'7', from:'2026-08-12', to:'2026-08-19', tmpSnap:0});
+  Object.assign(GW, {
+    on:true, step:1,
+    scope:'full',
+    mode:'browse',       // 'browse' | 'search'
+    snap:0, tmpSnap:0,
+    sel:new Set(),       // multi in browse, single in search
+    q:'',
+    childRestore:false,
+    typeF:new Set(),
+    range:'7', from:'2026-08-19', to:'2026-08-24',
+    _repaint:null
+  });
   gwRender();
 }
-/* whether nested-groups step is needed */
-const hasNested = () => { const g=gwGroup(); return !!(g && nestedOf(g).length && (GW.scope==='full'||GW.scope==='membership')); };
-const gwTotal  = () => hasNested() ? 5 : 4;   // 5 steps when nested applies, 4 otherwise
-const confirmStep = () => gwTotal();
 
-const gwGroups = () => listFor('settings','group').filter(o=>o.protected);
-function gwRows(){
-  const q = GW.q.trim().toLowerCase();
-  return gwGroups().filter(o=>{
-    if(q && !(o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q))) return false;
-    if(GW.typeF.size && !GW.typeF.has(o.gtype)) return false;
-    if(o.status !== GW.status) return false;
-    return true;
-  });
-}
-const gwGroup = () => byId(GW.gid);
+/* nested-of helper stays; nestedBlock removed */
+const nestedOf = g => (NESTED[g.name]||[]);
+
+const GW_SCOPES = [
+  {v:'full',       t:'Restore entire group',
+   d:'Use this when the group has been deleted. Recreates the group from scratch including its name, email address, all settings, and the full membership list with roles.'},
+  {v:'membership', t:'Restore membership only',
+   d:'Use this when the group exists but its member list is wrong — people were incorrectly added, removed, or had their roles changed. This repairs the membership without touching the group\'s name, email, or settings.'},
+  {v:'settings',   t:'Restore group settings only',
+   d:'Use this when the group exists and the membership is fine, but someone changed how the group behaves — posting permissions were changed, external membership was toggled, or Collaborative Inbox was misconfigured. This covers everything that is not membership: name, description, aliases, all behavioural settings.'}
+];
 
 function gwRender(){
-  const T=gwTotal();
+  const T = gwT;
+
+  /* ---- STEP 1: scope ---- */
   if(GW.step===1){
     const body = `<div class="mbody"><h3>Select the Restore Scope</h3>
       <div class="lead">Select what data you want to restore.</div>
-      <div class="scopelist">${SCOPES.map(s=>`
+      <div class="scopelist">${GW_SCOPES.map(s=>`
         <div class="scopecard ${GW.scope===s.v?'on':''}" data-gw="scope" data-v="${s.v}">
           <input type="radio" class="rd" name="gwscope" ${GW.scope===s.v?'checked':''}>
           <div><div class="sct">${s.t}</div><div class="scd">${s.d}</div></div>
         </div>`).join('')}</div></div>`;
     const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
-      <button class="btn" data-gw="cancel">Back</button>
+      <button class="btn" data-gw="cancel">Cancel</button>
       <button class="btn primary" data-gw="next">Next</button></div></div>`;
     return gwPaint(mhd('Restore a Group',false)+stepper(1,T)+body+footer);
   }
 
+  /* ---- STEP 2: select group(s) — browse or search ---- */
   if(GW.step===2){
-    const rows = gwRows();
-    const rail = `
-      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Group Type <span class="cr">▲</span></div>
+    const allGroups = gwGroups();
+    const q = GW.q.trim().toLowerCase();
+
+    /* browse mode: group table with checkboxes, snapshot pill */
+    const repGroup = allGroups[0]; // use first group's snaps for the timestamp display
+    const snapDate = repGroup ? snapsOf(repGroup)[GW.snap] : null;
+    const snapLabel = snapDate ? fmtPill(snapDate) : '—';
+
+    const modeToggle = `<div class="moderadios">
+      <label class="moderadio" data-gw="mode" data-v="browse">
+        <input type="radio" class="rd" name="gwmode" ${GW.mode==='browse'?'checked':''}>
+        Browse in one snapshot: <b>${snapLabel}</b>${GW.snap===0?' (latest)':''}.
+        <span class="inlinelink" data-gw="chgsnap" style="margin-left:6px">Change snapshot ›</span>
+      </label>
+      <label class="moderadio" data-gw="mode" data-v="search">
+        <input type="radio" class="rd" name="gwmode" ${GW.mode==='search'?'checked':''}>
+        Search by group name
+      </label>
+    </div>`;
+
+    let tableArea = '';
+    if(GW.mode==='browse'){
+      const browseRows = allGroups.filter(o=>!q || o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q));
+      const rail = `<div class="frgroup"><div class="frhd" data-act="fr-toggle">Group Type <span class="cr">▲</span></div>
         <div class="frbody">${GTYPE.map(t=>`<label class="fropt"><input type="checkbox" class="cb" data-gw="typef" data-v="${t}"
-          ${GW.typeF.has(t)?'checked':''}><span>${t}</span></label>`).join('')}</div></div>
-      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Status <span class="cr">▲</span></div>
-        <div class="frbody">${['Active','Relic'].map(s=>`<label class="fropt"><input type="radio" class="rd" name="gwst"
-          data-gw="status" data-v="${s}" ${GW.status===s?'checked':''}><span>${s}</span></label>`).join('')}</div></div>`;
-    /* Group Type is a filter facet on the left rather than a column, so the
-       snapshot pill always has room in the fixed-width dialog. */
-    const table = `<div class="wlist"><table class="flat">
-      <thead><tr><th class="cbcell"></th><th>Group</th><th>Email</th><th class="tac">Members</th>
-        <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings"
-          data-msg="Choose which columns to display.">${ICON.cols}</span></th></tr></thead>
-      <tbody>${rows.map(o=>{
-        const on = GW.gid===o.id, snaps=snapsOf(o), d=snaps[on?GW.snap:0];
-        return `<tr class="${on?'rowsel':''}" data-gw="pickgroup" data-id="${o.id}">
-          <td class="cbcell"><input type="radio" class="rd" name="gwgrp" ${on?'checked':''}></td>
-          <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
-          <td class="muted" title="${o.email}" style="max-width:230px">${o.email}</td>
-          <td class="tac">${num(o.members)}</td>
-          <td class="snapcell">${on?`<span class="snappill" data-gw="chgsnap">${fmtPill(d)}${GW.snap===0?' (latest snapshot)':''}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/></svg></span>`:''}</td>
-        </tr>`;
-      }).join('')}</tbody></table>
-      ${rows.length?'':'<div class="empty">No groups match the current filters.</div>'}</div>`;
-    const body = `<div class="mbody fill"><h3>Select a Group and Snapshot</h3>
-      <div class="wtop"><div class="lead">By default, the latest snapshot will be used to restore the group.</div>
-        <div class="search sm"><span class="si">${ICON.searchi}</span>
-          <input placeholder="Search by group name" value="${GW.q}" data-gw="q"></div></div>
-      <div class="wsplit"><div class="frail">${rail}</div><div>${table}</div></div></div>`;
+          ${GW.typeF.has(t)?'checked':''}><span>${t}</span></label>`).join('')}</div></div>`;
+      const allSel = browseRows.length && browseRows.every(o=>GW.sel.has(o.id));
+      const tbl = `<div class="wlist"><table class="flat">
+        <thead><tr>
+          <th class="cbcell"><input type="checkbox" class="cb" data-gw="selall" ${allSel?'checked':''}></th>
+          <th>Group</th><th>Email</th><th class="tac">Members</th>
+          <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose columns.">${ICON.cols}</span></th>
+        </tr></thead>
+        <tbody>${browseRows.map(o=>`
+          <tr class="${GW.sel.has(o.id)?'rowsel':''}" data-gw="pickrow" data-id="${o.id}">
+            <td class="cbcell"><input type="checkbox" class="cb" data-gw="pickbrowse" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}></td>
+            <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
+            <td class="muted" title="${o.email}" style="max-width:220px">${o.email}</td>
+            <td class="tac">${num(o.members)}</td>
+            <td></td>
+          </tr>`).join('')}
+        </tbody></table>
+        ${browseRows.length?'':'<div class="empty">No groups match the search.</div>'}
+      </div>`;
+      tableArea = `<div class="wsplit"><div class="frail">${rail}</div><div>${tbl}</div></div>`;
+    } else {
+      /* search mode */
+      if(!q){
+        tableArea = `<div class="emptysearch">
+          <svg width="180" height="140" viewBox="0 0 180 140" fill="none">
+            <ellipse cx="90" cy="118" rx="60" ry="14" fill="rgba(47,202,255,.08)"/>
+            <rect x="30" y="30" width="88" height="68" rx="10" fill="rgba(47,202,255,.12)" stroke="rgba(77,210,210,.4)" stroke-width="1.5"/>
+            <rect x="42" y="48" width="50" height="6" rx="3" fill="rgba(77,210,210,.5)"/>
+            <rect x="42" y="60" width="36" height="6" rx="3" fill="rgba(77,210,210,.3)"/>
+            <rect x="42" y="72" width="44" height="6" rx="3" fill="rgba(77,210,210,.3)"/>
+            <circle cx="122" cy="74" r="26" fill="rgba(47,202,255,.10)" stroke="rgba(77,210,210,.55)" stroke-width="2.2"/>
+            <circle cx="122" cy="74" r="16" fill="none" stroke="rgba(77,210,210,.7)" stroke-width="2"/>
+            <line x1="138" y1="90" x2="151" y2="104" stroke="rgba(77,210,210,.7)" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+          <h3>Search by Group Name</h3>
+          <p>Search for a group across all snapshots. The latest version of the group from its most recent snapshot will be shown.</p>
+        </div>`;
+      } else {
+        const searchRows = allGroups.filter(o=>o.name.toLowerCase().includes(q)||o.email.toLowerCase().includes(q));
+        tableArea = `<div class="wlist"><table class="flat">
+          <thead><tr>
+            <th class="cbcell"></th><th>Group</th><th>Email</th><th class="tac">Members</th>
+            <th class="tac"><span class="colcfg" data-act="toast" data-title="Table settings" data-msg="Choose columns.">${ICON.cols}</span></th>
+          </tr></thead>
+          <tbody>${searchRows.map(o=>`
+            <tr class="${GW.sel.has(o.id)?'rowsel':''}" data-gw="pickrow" data-id="${o.id}">
+              <td class="cbcell"><input type="radio" class="rd" name="gwsearch" data-gw="picksearch" data-id="${o.id}" ${GW.sel.has(o.id)?'checked':''}></td>
+              <td><div class="oname">${ICON.group}<span class="nn">${o.name}</span></div></td>
+              <td class="muted" title="${o.email}" style="max-width:220px">${o.email}</td>
+              <td class="tac">${num(o.members)}</td>
+              <td></td>
+            </tr>`).join('')}
+          </tbody></table>
+          ${searchRows.length?'':'<div class="empty">No groups match.</div>'}
+        </div>`;
+      }
+    }
+
+    const selN = GW.sel.size;
+    const body = `<div class="mbody fill">
+      <h3>${GW.mode==='browse' ? 'Select Group and Snapshot' : 'Search and Select a Group'}</h3>
+      ${modeToggle}
+      ${GW.mode==='search' ? `<div class="search" style="margin-bottom:18px;width:100%"><span class="si">${ICON.searchi}</span>
+        <input id="gwq" style="width:100%" placeholder="Search by group name…" value="${GW.q}" data-gw="q"></div>` : ''}
+      ${tableArea}
+    </div>`;
     const footer = `<div class="mfooter">
-      <div class="mfl">${GW.gid?`<span style="color:var(--accent);font-weight:600">1 item selected</span>`:''}</div>
+      <div class="mfl">${selN ? `<span style="color:var(--accent);font-weight:600">${selN} item${selN>1?'s':''} selected</span>` : ''}</div>
       <div class="mfr"><button class="btn" data-gw="back">Back</button>
-        <button class="btn primary" data-gw="next" ${GW.gid?'':'disabled'}>Next</button></div></div>`;
+        <button class="btn primary" data-gw="next" ${selN?'':'disabled'}>Next</button></div></div>`;
     return gwPaint(mhd('Restore a Group',true)+stepper(2,T)+body+footer);
   }
 
+  /* ---- STEP 3: child group recovery (optional) ---- */
   if(GW.step===3){
-    const g = gwGroup();
-    const membershipy = GW.scope==='full' || GW.scope==='membership';
-    const origSub = membershipy ? `<div class="locsub">
-        ${[['merge','Merge with existing membership','Members from the snapshot are added. Members added since the snapshot are kept.'],
-           ['overwrite','Overwrite existing membership with data from snapshot','The live membership is replaced by the snapshot membership.'],
-           ['nodupe',"Don't restore duplicate members",'Members that already exist in the group are skipped.']]
-          .map(([v,t,d])=>`<label class="subopt" data-gw="origmode" data-v="${v}">
-            <input type="radio" class="rd" name="gworig" ${GW.origMode===v?'checked':''}>
-            <div><div class="st2">${t}</div><div class="sd2">${d}</div></div></label>`).join('')}
-      </div>` : '';
-    const diffSub = `<div class="locsub">
-        <label class="subopt" data-gw="diffmode" data-v="existing">
-          <input type="radio" class="rd" name="gwdiff" ${GW.diffMode==='existing'?'checked':''}>
-          <div><div class="st2">Select an existing group</div></div></label>
-        ${GW.diffMode==='existing'?`<div class="locfield"><label>Group</label>
-          <select data-gw="target"><option value="">Select a group</option>
-            ${gwGroups().filter(o=>o.id!==GW.gid).map(o=>`<option value="${o.id}" ${GW.targetId===o.id?'selected':''}>${o.name} — ${o.email}</option>`).join('')}
-          </select></div>`:''}
-        <label class="subopt" data-gw="diffmode" data-v="new">
-          <input type="radio" class="rd" name="gwdiff" ${GW.diffMode==='new'?'checked':''}>
-          <div><div class="st2">Create a new group</div></div></label>
-        ${GW.diffMode==='new'?`<div class="locfield"><label>New Group Name</label>
-            <input data-gw="newname" value="${GW.newName||g.name+' (restored)'}"></div>
-          <div class="locfield"><label>New Group Email</label>
-            <input data-gw="newemail" value="${GW.newEmail||g.email.replace('@','-restored@')}"></div>`:''}
-      </div>`;
-    const origDesc = GW.scope==='full'
-      ? 'Data will be restored to the original group. If the group no longer exists, it is recreated with the same email address and aliases.'
-      : 'Data will be restored to the original group. If the original group was deleted, restore will fail.';
-    const body = `<div class="mbody"><h3>Select a Restore Location</h3>
-      <div class="lead">Choose where you want to restore ${SCOPE_T(GW.scope).toLowerCase()} data of <b>${g.name}</b>.</div>
-      <div class="locopt" data-gw="loc" data-v="orig">
-        <input type="radio" class="rd" name="gwloc" ${GW.loc==='orig'?'checked':''}>
-        <div style="flex:1"><div class="lt">Restore to the original group</div>
-          <div class="ld">${origDesc}</div>
-          ${GW.loc==='orig'?origSub:''}</div></div>
-      <div class="locopt" data-gw="loc" data-v="diff">
-        <input type="radio" class="rd" name="gwloc" ${GW.loc==='diff'?'checked':''}>
-        <div style="flex:1"><div class="lt">Restore to a different group</div>
-          <div class="ld">Data will be restored into another group, leaving the original group untouched.</div>
-          ${GW.loc==='diff'?diffSub:''}</div></div>
-      </div>`;
-    const ready = GW.loc==='orig' || (GW.diffMode==='new') || (GW.diffMode==='existing' && GW.targetId);
-    const footer = `<div class="mfooter">
-      <div class="mfl"></div>
-      <div class="mfr"><button class="btn" data-gw="back">Back</button>
-        <button class="btn primary" data-gw="next-loc" ${ready?'':'disabled'}>Next</button></div></div>`;
-    return gwPaint(mhd('Restore a Group',true)+stepper(3,T)+body+footer);
-  }
-
-  // step 4 — nested group memberships (only reached when hasNested())
-  if(GW.step===4 && hasNested()){
-    const g = gwGroup(), kids = nestedOf(g);
+    const selObjs = [...GW.sel].map(byId).filter(Boolean);
+    const selList = selObjs.map(o=>`
+      <div class="selgrouprow">
+        <div class="oname">${ICON.group}<span class="nn">${o.name}</span></div>
+        <div class="sge">${o.email}</div>
+      </div>`).join('');
+    /* collect all child groups from all selected groups */
+    const allKids = [...new Set(selObjs.flatMap(o=>nestedOf(o)))];
+    const childSection = allKids.length ? `
+      ${GW.childRestore ? `<div class="childchips">${allKids.map(k=>`
+        <span class="childchip">${ICON.group}${k}</span>`).join('')}</div>` : ''}
+    ` : '';
     const body = `<div class="mbody"><h3>Restore Related Groups</h3>
-      <div class="lead"><b>${g.name}</b> contains ${kids.length} ${kids.length===1?'group':'groups'} as members in this snapshot.
-        Choose whether those parent-group memberships are restored alongside the individual members.</div>
-      <label class="subopt" data-gw="nest" data-v="restore" style="padding:16px 0">
-        <input type="radio" class="rd" name="gwnest" ${GW.nest==='restore'?'checked':''}>
-        <div><div class="st2">Restore nested group memberships</div>
-          <div class="sd2">Member groups are re-added exactly as they appear in the snapshot. Deselect any you want to skip.</div></div></label>
-      ${GW.nest==='restore'?`<div class="nestlist" style="margin:0 0 18px 29px">${kids.map(k=>`
-        <label class="nestrow"><input type="checkbox" class="cb" data-gw="nestskip" data-v="${k}"
-          ${GW.nestSkip.has(k)?'':'checked'}>${ICON.group}<span>${k}</span></label>`).join('')}</div>`:''}
-      <label class="subopt" data-gw="nest" data-v="skip" style="padding:16px 0">
-        <input type="radio" class="rd" name="gwnest" ${GW.nest==='skip'?'checked':''}>
-        <div><div class="st2">Skip nested group memberships</div>
-          <div class="sd2">Only individual members are restored. Member groups are left as they are today.</div></div></label>
+      <div class="lead">Choose whether to also restore child groups that are members of the selected group(s).</div>
+      <div class="selgrouplist">${selList}</div>
       <div class="locrule"></div>
-      <label class="ack"><input type="checkbox" class="cb" data-gw="noroles" ${GW.noRoles?'checked':''}>
-        Don't restore member roles ${info('Members are restored as MEMBER. Owner and manager roles from the snapshot are not reapplied.')}</label>
-      </div>`;
+      <label class="ack" style="cursor:pointer"><input type="checkbox" class="cb" data-gw="child" ${GW.childRestore?'checked':''}>
+        <div>
+          <div style="font-weight:600;margin-bottom:4px">Also restore child groups</div>
+          <div style="font-size:12.5px;color:var(--text-mod);">If the selected group(s) contain other groups as members, those nested group memberships will also be restored.</div>
+        </div>
+      </label>
+      ${childSection}
+    </div>`;
     const footer = `<div class="mfooter"><div class="mfl"></div>
       <div class="mfr"><button class="btn" data-gw="back">Back</button>
         <button class="btn primary" data-gw="next">Next</button></div></div>`;
-    return gwPaint(mhd('Restore a Group',true)+stepper(4,T)+body+footer);
+    return gwPaint(mhd('Restore a Group',true)+stepper(3,T)+body+footer);
   }
 
-  // confirmation — step 4 or 5 depending on whether nested applied
-  const g = gwGroup(), d = snapsOf(g)[GW.snap];
-  let locLine, locSub='';
-  if(GW.loc==='orig'){
-    locLine = 'Restore to the original group';
-    if(GW.scope==='full'||GW.scope==='membership')
-      locSub = {merge:'Merge with existing membership',
-                overwrite:'Overwrite existing membership with data from snapshot',
-                nodupe:"Don't restore duplicate members"}[GW.origMode];
-  } else if(GW.diffMode==='existing'){
-    locLine = 'Restore to a different group';
-    locSub = 'Target group: ' + (byId(GW.targetId)||{name:'—'}).name;
-  } else {
-    locLine = 'Restore to a different group';
-    locSub = 'New group: ' + (GW.newName||g.name+' (restored)') + ' — ' + (GW.newEmail||g.email.replace('@','-restored@'));
-  }
-  if(GW.noRoles) locSub += (locSub?' · ':'') + 'Member roles are not restored';
-  const kids = nestedOf(g), showNest = kids.length && (GW.scope==='full'||GW.scope==='membership');
-  const keep = kids.filter(k=>!GW.nestSkip.has(k));
-  const nestRow = !showNest ? '' : `<div class="sumrow"><div class="sk">Nested Groups</div><div class="sv">${
-    GW.nest==='skip' ? 'Skipped'
-      : keep.length ? `${keep.length} of ${kids.length} restored<div class="sub">${keep.join(', ')}</div>`
-      : 'None selected'}</div></div>`;
+  /* ---- STEP 4: summary / confirmation ---- */
+  const selObjs = [...GW.sel].map(byId).filter(Boolean);
+  const firstG = selObjs[0];
+  const snapDate = firstG ? snapsOf(firstG)[GW.snap] : null;
+  const snapLabel = GW.mode==='browse'
+    ? (snapDate ? fmtSnap(snapDate) : '—')
+    : 'Latest available snapshot, per group';
+  const scopeLabel = GW_SCOPES.find(s=>s.v===GW.scope)?.t || GW.scope;
+  const allKids = [...new Set(selObjs.flatMap(o=>nestedOf(o)))];
+
+  const groupRows = selObjs.map(o=>`
+    <div class="sumrow">
+      <div class="sk">${selObjs.length===1?'Group':'Groups'}</div>
+      <div class="sv">${o.name}<div class="sub">${o.email}</div></div>
+    </div>`).join('');
+  /* deduplicate the Groups label (only show "Groups" once for multiple) */
+  const groupSummary = selObjs.length===1
+    ? `<div class="sumrow"><div class="sk">Group</div><div class="sv">${selObjs[0].name}<div class="sub">${selObjs[0].email}</div></div></div>`
+    : `<div class="sumrow"><div class="sk">Groups</div><div class="sv">${selObjs.map(o=>`${o.name}<div class="sub" style="margin-bottom:6px">${o.email}</div>`).join('')}</div></div>`;
+
   const body = `<div class="mbody"><h3>Confirmation</h3>
     <h4 style="font-size:19px;font-weight:800;margin-bottom:24px">Restore Summary</h4>
-    <!-- step number for confirmation is always the last -->
-    <span style="display:none" data-cur="${confirmStep()}" data-tot="${T}"></span>
-    <div class="sumrow"><div class="sk">Recovery Scope</div><div class="sv">${SCOPE_T(GW.scope)}</div></div>
-    <div class="sumrow"><div class="sk">Group</div><div class="sv">${g.name}<div class="sub">${g.email}</div></div></div>
-    <div class="sumrow"><div class="sk">Snapshot</div><div class="sv">${fmtSnap(d)}</div></div>
-    <div class="sumrow"><div class="sk">Restore Location</div>
-      <div class="sv">${locLine}${locSub?`<div class="sub">${locSub}</div>`:''}</div></div>
-    ${nestRow}</div>`;
+    <div class="sumrow"><div class="sk">Recovery Scope</div><div class="sv">${scopeLabel}</div></div>
+    ${groupSummary}
+    <div class="sumrow"><div class="sk">Snapshot</div><div class="sv">${snapLabel}</div></div>
+    <div class="sumrow"><div class="sk">Child Groups</div><div class="sv">${
+      GW.childRestore && allKids.length
+        ? `Will be restored<div class="sub">${allKids.join(', ')}</div>`
+        : 'Not included'
+    }</div></div>
+  </div>`;
   const footer = `<div class="mfooter"><div class="mfl"></div><div class="mfr">
     <button class="btn" data-gw="back">Back</button>
     <button class="btn primary" data-gw="finish">Restore</button></div></div>`;
-  gwPaint(mhd('Restore a Group',false)+stepper(confirmStep(),T)+body+footer);
-}
-
-/* nested groups: only meaningful when membership is part of the restore */
-const nestedOf = g => (NESTED[g.name]||[]);
-function nestedBlock(g){
-  const kids = nestedOf(g);
-  if(!kids.length || !(GW.scope==='full' || GW.scope==='membership')) return '';
-  return `<div class="nestbox">
-    <div class="nesthd">Nested Group Memberships</div>
-    <div class="nestsub"><b>${g.name}</b> contains ${kids.length} ${kids.length===1?'group':'groups'} as members in this
-      snapshot. Choose whether those memberships are restored along with the individual members.</div>
-    <label class="subopt" data-gw="nest" data-v="restore">
-      <input type="radio" class="rd" name="gwnest" ${GW.nest==='restore'?'checked':''}>
-      <div><div class="st2">Restore nested group memberships</div>
-        <div class="sd2">Member groups are re-added exactly as they appear in the snapshot.</div></div></label>
-    ${GW.nest==='restore'?`<div class="nestlist">${kids.map(k=>`
-      <label class="nestrow"><input type="checkbox" class="cb" data-gw="nestskip" data-v="${k}"
-        ${GW.nestSkip.has(k)?'':'checked'}>${ICON.group}<span>${k}</span></label>`).join('')}</div>`:''}
-    <label class="subopt" data-gw="nest" data-v="skip">
-      <input type="radio" class="rd" name="gwnest" ${GW.nest==='skip'?'checked':''}>
-      <div><div class="st2">Skip nested group memberships</div>
-        <div class="sd2">Only individual members are restored. Member groups are left as they are today.</div></div></label>
-  </div>`;
+  gwPaint(mhd('Restore a Group',false)+stepper(4,T)+body+footer);
 }
 
 function gwPaint(html){
@@ -1761,54 +1806,73 @@ function gwPaint(html){
   md.querySelectorAll('[data-gw]').forEach(el=>{
     const a = el.dataset.gw;
     if(a==='q'){ el.addEventListener('input',()=>{ GW.q=el.value; gwRender(); }); return; }
-    if(a==='newname'){ el.addEventListener('input',()=>{ GW.newName=el.value; }); return; }
-    if(a==='newemail'){ el.addEventListener('input',()=>{ GW.newEmail=el.value; }); return; }
-    if(a==='target'){ el.addEventListener('change',()=>{ GW.targetId=el.value||null; gwRender(); }); return; }
     el.addEventListener('click', e=>{
       switch(a){
         case 'scope': GW.scope=el.dataset.v; break;
         case 'typef': el.checked?GW.typeF.add(el.dataset.v):GW.typeF.delete(el.dataset.v); break;
-        case 'status': GW.status=el.dataset.v; break;
-        case 'pickgroup': {
-          if(e.target.closest('[data-gw="chgsnap"]')) return;
-          if(GW.gid!==el.dataset.id){ GW.gid=el.dataset.id; GW.snap=0; GW.targetId=null; }
+        case 'mode': GW.mode=el.dataset.v; GW.sel=new Set(); GW.q=''; break;
+        case 'selall': {
+          const all = gwGroups();
+          const allSel = all.every(o=>GW.sel.has(o.id));
+          all.forEach(o=> allSel ? GW.sel.delete(o.id) : GW.sel.add(o.id));
           break;
         }
-        case 'chgsnap': e.stopPropagation(); GW.tmpSnap=GW.snap; snapPicker(); return;
-        case 'loc': if(e.target.closest('.locsub')) return;   // nested controls handle themselves
-                    GW.loc=el.dataset.v; break;
-        case 'origmode': GW.origMode=el.dataset.v; break;
-        case 'diffmode': GW.diffMode=el.dataset.v; break;
-        case 'nest': GW.nest=el.dataset.v; break;
-        case 'nestskip': el.checked?GW.nestSkip.delete(el.dataset.v):GW.nestSkip.add(el.dataset.v); return;
-        case 'noroles': GW.noRoles=el.checked; return;   // no re-render: keeps focus
-        case 'back':
-          if(GW.step===confirmStep()) GW.step = hasNested() ? 4 : 3;
-          else GW.step--;
+        case 'pickbrowse': {
+          e.stopPropagation();
+          GW.sel.has(el.dataset.id) ? GW.sel.delete(el.dataset.id) : GW.sel.add(el.dataset.id);
           break;
+        }
+        case 'pickrow': {
+          if(e.target.closest('[data-gw="pickbrowse"]')||e.target.closest('[data-gw="picksearch"]')) return;
+          if(GW.mode==='browse'){
+            GW.sel.has(el.dataset.id) ? GW.sel.delete(el.dataset.id) : GW.sel.add(el.dataset.id);
+          } else {
+            GW.sel = new Set([el.dataset.id]);
+          }
+          break;
+        }
+        case 'picksearch': {
+          e.stopPropagation();
+          GW.sel = new Set([el.dataset.id]);
+          break;
+        }
+        case 'chgsnap': {
+          e.stopPropagation();
+          GW.tmpSnap = GW.snap;
+          const repGroup = gwGroups()[0];
+          if(repGroup) snapPicker(repGroup);
+          return;
+        }
+        case 'child': GW.childRestore = el.checked; gwRender(); return;
+        case 'back': if(GW.step>1) GW.step--; break;
         case 'cancel': closeModal(); return;
         case 'next': GW.step++; break;
-        // Next from step 3 (location): jump over nested step if not needed
-        case 'next-loc': GW.step = hasNested() ? 4 : confirmStep(); break;
         case 'finish': {
-          const g=gwGroup(), d=snapsOf(g)[GW.snap];
-          const where = GW.loc==='orig' ? 'the original group'
-            : GW.diffMode==='existing' ? (byId(GW.targetId)||{name:'the selected group'}).name
-            : (GW.newName||g.name+' (restored)');
+          const names = [...GW.sel].map(id=>(byId(id)||{name:'—'}).name).join(', ');
+          const scope = GW_SCOPES.find(s=>s.v===GW.scope)?.t || GW.scope;
           closeModal();
-          toast('Restore started',
-            `${SCOPE_T(GW.scope)} of ${g.name} from ${fmtSnap(d)} is being restored to ${where}. Track progress under Events → Recovery.`,'info');
+          toast('Restore started', `${scope} of ${names} queued. Track progress under Events → Recovery.`, 'info');
           return;
         }
       }
       gwRender();
     });
   });
+  /* row-level click for browse (whole row) */
+  md.querySelectorAll('[data-gw="pickrow"]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      if(GW.mode==='browse'){
+        GW.sel.has(row.dataset.id) ? GW.sel.delete(row.dataset.id) : GW.sel.add(row.dataset.id);
+      } else {
+        GW.sel = new Set([row.dataset.id]);
+      }
+      gwRender();
+    });
+  });
 }
 
-/* change-snapshot panel (right-side drawer, over the wizard) */
-function snapPicker(){
-  const g = gwGroup();
+/* snapshot picker — opens as a panel INSIDE the modal (not full-screen drawer) */
+function snapPicker(g){
   const paint = () => {
     const all = snapsOf(g);
     let list;
@@ -1819,16 +1883,19 @@ function snapPicker(){
       const days=parseInt(GW.range,10);
       list = all.map((d,i)=>[d,i]).filter(([d])=>(NOW-d) <= days*864e5);
     }
-    openDrawer(`${mhd('Change Snapshot for '+g.name,false)}
+    const html = `
+      <div class="mhd"><h2>Change Snapshot for ${g.name}</h2>
+        <div class="mact"><span id="spcls">✕</span></div></div>
       <div class="mbody">
-        <div class="lead" style="margin-bottom:26px">Select the snapshot you want to use to restore data from the group ${g.name}.</div>
+        <div class="lead" style="margin-bottom:24px">Select the snapshot you want to use to restore data from the group ${g.name}.</div>
         <div class="snapgrid">
           <div class="frail"><div class="frgroup">
-            <div class="frhd" data-act="fr-toggle">Time Range <span class="cr">▲</span></div>
+            <div class="frhd">Time Range <span class="cr">▲</span></div>
             <div class="frbody">${RANGES.map(([v,l])=>`<label class="fropt"><input type="radio" class="rd" name="gwrange"
-              data-sp="range" data-v="${v}" ${GW.range===v?'checked':''}><span>${l}</span></label>`).join('')}
+              id="sprange_${v}" data-sp="range" data-v="${v}" ${GW.range===v?'checked':''}><span>${l}</span></label>`).join('')}
               ${GW.range==='custom'?`<div class="customdates">
-                <input type="date" data-sp="from" value="${GW.from}"><input type="date" data-sp="to" value="${GW.to}"></div>`:''}
+                <input type="date" id="spfrom" data-sp="from" value="${GW.from}">
+                <input type="date" id="spto" data-sp="to" value="${GW.to}"></div>`:''}
             </div></div></div>
           <div>
             <div class="snaphd">Snapshot Date and Time</div>
@@ -1839,22 +1906,54 @@ function snapPicker(){
                   <path d="M3 7.8h3.6l1.5-2.4h7.8l1.5 2.4H21v11H3z"/><circle cx="12" cy="13" r="3.4"/></svg>
                 <span>${fmtSnap(d)}</span></div>`).join('')}
               ${list.length?'':'<div class="empty">No snapshots in this time range.</div>'}</div>
-          </div></div></div>
+        </div></div>
+      </div>
       <div class="mfooter"><div class="mfl"></div><div class="mfr">
-        <button class="btn" data-sp="cancel">Cancel</button>
-        <button class="btn primary" data-sp="save">Save</button></div></div>`);
-    dr.querySelectorAll('[data-sp]').forEach(el=>{
-      const a=el.dataset.sp;
-      if(a==='from'||a==='to'){ el.addEventListener('change',()=>{ GW[a]=el.value; paint(); }); return; }
-      el.addEventListener('click',()=>{
-        if(a==='range'){ GW.range=el.dataset.v; paint(); }
-        else if(a==='pick'){ GW.tmpSnap=+el.dataset.i; paint(); }
-        else if(a==='cancel'){ closeDrawer(); }
-        else if(a==='save'){ GW.snap=GW.tmpSnap; closeDrawer(); gwRender(); }
-      });
+        <button class="btn" id="spcancel">Cancel</button>
+        <button class="btn primary" id="spsave">Save</button></div></div>`;
+    openModalPanel(html, paint);
+    /* wire events on the panel */
+    const panel = document.getElementById('mpanel');
+    if(!panel) return;
+    panel.querySelector('#spcls').addEventListener('click', closeModalPanel);
+    panel.querySelector('#spcancel').addEventListener('click', closeModalPanel);
+    panel.querySelector('#spsave').addEventListener('click', ()=>{ GW.snap=GW.tmpSnap; closeModalPanel(); gwRender(); });
+    panel.querySelectorAll('[data-sp="range"]').forEach(el=>{
+      el.addEventListener('click', ()=>{ GW.range=el.dataset.v; paint(); });
     });
+    panel.querySelectorAll('[data-sp="pick"]').forEach(el=>{
+      el.addEventListener('click', ()=>{ GW.tmpSnap=+el.dataset.i; paint(); });
+    });
+    const spfrom=panel.querySelector('#spfrom'), spto=panel.querySelector('#spto');
+    if(spfrom) spfrom.addEventListener('change',()=>{ GW.from=spfrom.value; paint(); });
+    if(spto)   spto.addEventListener('change',()=>{ GW.to=spto.value; paint(); });
   };
   paint();
+}
+
+/* View Members page-level drawer */
+function openViewMembers(o){
+  const members = PEOPLE.slice(0, Math.min(8, o.members)).map(p=>({name:p[0], email:p[1]+'@'+DOMAIN}));
+  openDrawer(`
+    <div class="mhd" style="padding:22px 28px;border-bottom:1px solid var(--stroke-weak)">
+      <h2 style="font-size:18px;font-weight:700">Members in ${o.name}</h2>
+      <div class="mact"><span id="vmcls" style="cursor:pointer">✕</span></div>
+    </div>
+    <div style="flex:1;overflow-y:auto">
+      <table class="flat" style="width:100%">
+        <thead><tr>
+          <th style="padding:16px 28px 12px">Member</th>
+          <th style="padding:16px 28px 12px">Email ID</th>
+          <th style="padding:16px 14px 12px;text-align:right">${ICON.cols}</th>
+        </tr></thead>
+        <tbody>${members.map(m=>`<tr style="cursor:default">
+          <td style="padding:0 28px"><div class="oname">${ICON.user}<span class="nn">${m.name}</span></div></td>
+          <td class="muted" style="padding:0 28px">${m.email}</td>
+          <td></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`);
+  document.getElementById('vmcls').addEventListener('click', closeDrawer);
 }
 
 /* ===========================================================================
@@ -1965,6 +2064,7 @@ document.addEventListener('click', e=>{
     case 'sub': go('app',{app:S.app,tab:'protect',sub:el.dataset.sub}); break;
     case 'restore': el.dataset.kind==='group' ? openGroupRestore() : openRestore(el.dataset.kind); break;
     case 'add-group': openAddGroup(); break;
+    case 'view-members': openViewMembers(byId(el.dataset.id)); break;
     case 'mp-settings': openModal(`${mhd('Manage Protection',false)}
       <div class="mbody"><h3 style="font-size:21px">Manage Protection</h3>
         <div class="lead">Assign or update SLA Domains for all groups in <b>Workspace Settings</b>.
@@ -2057,7 +2157,9 @@ document.addEventListener('change', e=>{
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   closeMenu();
-  drawerOpen() ? closeDrawer() : closeModal();   // Esc closes the top layer first
+  if(drawerOpen()) closeDrawer();
+  else if(modalPanelOpen()) closeModalPanel();
+  else closeModal();
 });
 let rsz;
 window.addEventListener('resize', ()=>{
