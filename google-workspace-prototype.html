@@ -1246,10 +1246,7 @@ function rwRender(){
     const railHtml = RW.kind==='user' ? `
       <div class="frgroup"><div class="frhd" data-act="fr-toggle">Organizational Unit <span class="cr">▲</span></div>
         <div class="frbody">${OUS.map(o=>`<label class="fropt"><input type="checkbox" class="cb" data-rw="ouf" data-v="${o}"
-          ${RW.ouF.has(o)?'checked':''}><span>${o}</span></label>`).join('')}</div></div>
-      <div class="frgroup"><div class="frhd" data-act="fr-toggle">Status <span class="cr">▲</span></div>
-        <div class="frbody">${['Active','Relic'].map(s=>`<label class="fropt"><input type="radio" class="rd" name="rwst"
-          data-rw="status" data-v="${s}" ${RW.status===s?'checked':''}><span>${s}</span></label>`).join('')}</div></div>`
+          ${RW.ouF.has(o)?'checked':''}><span>${o}</span></label>`).join('')}</div></div>`
       : RW.kind==='scale' ? `
       <div class="frgroup"><div class="frhd" data-act="fr-toggle">Scope <span class="cr">▲</span></div>
         <div class="frbody">${[['all','All data'],['group','By group'],['ou','By organizational unit']].map(([v,l])=>
@@ -1385,11 +1382,7 @@ function settingsManageProtectionTab(){
   const all  = listFor('settings','group');
   const impo = all.filter(o=>o.protected);
   const q = S.q.trim().toLowerCase();
-  let rows = impo.filter(o=>{
-    if(q && !(o.name.toLowerCase().includes(q)||(o.email||'').toLowerCase().includes(q))) return false;
-    if(S.slaFilter.size){ const k=o.sla||'__nosla'; if(!S.slaFilter.has(k)) return false; }
-    return true;
-  });
+  let rows = impo.filter(o=>!q || o.name.toLowerCase().includes(q)||(o.email||'').toLowerCase().includes(q));
   if(S.sort.col){
     const k=S.sort.col;
     rows=rows.slice().sort((a,b)=>{
@@ -1425,10 +1418,7 @@ function settingsManageProtectionTab(){
         <div class="search sm"><span class="si">${ICON.searchi}</span>
           <input id="q" placeholder="Search by GROUP name" value="${S.q}" data-act="q"></div>
       </div></div>
-    <div class="mpgrid">
-      <div class="frail">${slaRail()}</div>
-      <div class="card tablecard">${table}</div>
-    </div>`;
+    <div class="card tablecard">${table}</div>`;
 }
 
 /* ===========================================================================
